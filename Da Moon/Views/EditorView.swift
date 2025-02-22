@@ -10,6 +10,10 @@ import CoreML
 
 let BOTTOM_BAR_PADDING: CGFloat = 12
 
+enum Tool {
+    case none, box
+}
+
 struct EditorView: View {
     // View Models
     var imageOCR = OCR()
@@ -17,6 +21,12 @@ struct EditorView: View {
     // Images
     @State var image: UIImage
     @State var subject: UIImage?
+    
+    @State private var currentTool: Tool = .none
+    
+    // Bounding Box
+    @State private var boxStartPos: CGPoint? = nil
+    @State private var currentBox: Path? = nil
     
     // Gloss Properties
     @State private var playingGlossAnim: Bool = false
@@ -40,6 +50,7 @@ struct EditorView: View {
                                     .resizable()
                                     .transition(.opacity)
                             }
+                            
                             // MARK: Detected Text View
                             if imageOCR.showObservations {
                                 ForEach(imageOCR.observations, id: \.self) { observation in
@@ -57,11 +68,53 @@ struct EditorView: View {
                                         }
                                 }
                             }
+                            
+                            // MARK: Bounding Box
+                            if let currentBox = currentBox {
+                                // Darkening for bounding box
+                                Color.black
+                                    .opacity(0.7)
+                                    .overlay {
+                                        currentBox
+                                            .fill(.black)
+                                            .blendMode(.destinationOut)
+                                    }
+                                    .compositingGroup()
+                                currentBox
+                                    .strokedPath(.init(
+                                        lineWidth: boxStartPos == nil ? 3 : 2,
+                                        lineJoin: .round,
+                                        dash: boxStartPos == nil ? [] : [5]
+                                    ))
+                                    .foregroundStyle(.gray.opacity(0.8))
+                            }
                         }
                     })
                     .aspectRatio(contentMode: .fit)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 10)
+                    .simultaneousGesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { drag in
+                                if currentTool != .box {
+                                    return
+                                }
+                                if boxStartPos == nil {
+                                    boxStartPos = drag.location
+                                }
+                                let end = drag.location
+                                let rectangle: CGRect = .init(origin: end,
+                                                              size: .init(width: boxStartPos!.x - end.x,
+                                                                          height: boxStartPos!.y - end.y))
+                                currentBox = .init { path in
+                                    path.addRect(rectangle)
+                                }
+                            }
+                            .onEnded { _ in
+                                boxStartPos = nil
+                                currentTool = .none
+                            }
+                    )
             }
             VStack {
                 Spacer()
@@ -70,8 +123,11 @@ struct EditorView: View {
                     BottomButton(icon: "lasso", action: {
                         // TODO: Lasso Tool
                     })
-                    BottomButton(icon: "rectangle.dashed", action: {
-                        // TODO: Select bounding box tool
+                    BottomButton(icon: "rectangle.dashed", pressed: { return currentTool == .box }, action: {
+                        // MARK: Select bounding box tool
+                        boxStartPos = nil
+                        currentBox = nil
+                        currentTool = currentTool == .box ? .none : .box
                     })
                     BottomButton(icon: "person.and.background.dotted", pressed: { return subject != nil}, action: {
                         // MARK: Select Subject
