@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-let GLOSS_DURATION: Double = 0.75
+let GLOSS_DURATION: Double = 1.0
 
 extension View {
     @ViewBuilder
@@ -36,7 +36,7 @@ extension View {
                         .offset(x: -size.width / 2)
                         .keyframeAnimator(initialValue: 0.0, trigger: toggle, content: { content, progress in
                             content
-                                .offset(x: -size.width / 2 + (progress * size.width))
+                                .offset(x: -size.width / 2 + (progress * size.width * 2))
                         }, keyframes: { _ in
                             CubicKeyframe(.zero, duration: 0.0)
                             CubicKeyframe(1, duration: GLOSS_DURATION)
