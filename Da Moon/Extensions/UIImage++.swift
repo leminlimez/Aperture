@@ -1,5 +1,5 @@
 //
-//  ImageResizing.swift
+//  UIImage++.swift
 //  Da Moon
 //
 //  Created by lemin on 2/22/25.
@@ -8,6 +8,7 @@
 import SwiftUI
 
 extension UIImage {
+    // MARK: Resizing
     /// Resizes the image to the specified size with a forced scale of 1.0.
     func resized(to size: CGSize) -> UIImage? {
         let format = UIGraphicsImageRendererFormat()
@@ -18,6 +19,7 @@ extension UIImage {
         }
     }
     
+    // MARK: CVPixelBuffer Operations
     /// Converts UIImage to a CVPixelBuffer.
     func toCVPixelBuffer() -> CVPixelBuffer? {
         guard let cgImage = self.cgImage else {
@@ -68,7 +70,7 @@ extension UIImage {
     }
     
     /// Initializes a UIImage from a CVPixelBuffer using updated bitmap info for proper color mapping.
-    convenience init?(pixelBuffer: CVPixelBuffer) {
+    convenience init?(pixelBuffer: CVPixelBuffer, scale: CGFloat? = nil, orientation: UIImage.Orientation? = nil) {
         CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
         defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly) }
         
@@ -92,6 +94,10 @@ extension UIImage {
               let cgImage = context.makeImage() else {
             return nil
         }
-        self.init(cgImage: cgImage)
+        if let scale = scale, let orientation = orientation {
+            self.init(cgImage: cgImage, scale: scale, orientation: orientation)
+        } else {
+            self.init(cgImage: cgImage)
+        }
     }
 }

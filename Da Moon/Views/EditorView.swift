@@ -27,18 +27,11 @@ struct EditorView: View {
                     .animation(.easeOut, value: subject != nil)
                     .shine(playingGlossAnim)
                     .overlay(content: {
-                        GeometryReader { geometry in
-                            // MARK: Subject Only
-                            if let subject = subject {
-                                Image(uiImage: subject)
-                                    .resizable()
-                                    .frame(
-                                        width: (subject.size.width / image.size.width) * geometry.size.width,
-                                        height: (subject.size.height / image.size.height) * geometry.size.height
-                                    )
-                                    .position(x: geometry.frame(in: .local).midX, y: geometry.frame(in: .local).midY)
-                                    .transition(.opacity)
-                            }
+                        // MARK: Subject Only
+                        if let subject = subject {
+                            Image(uiImage: subject)
+                                .resizable()
+                                .transition(.opacity)
                         }
                     })
                     .aspectRatio(contentMode: .fit)
@@ -69,16 +62,19 @@ struct EditorView: View {
                         // MARK: Select Subject
                         if !playingGlossAnim {
                             startGloss()
+                            subject = nil
                             Task {
-                                subject = nil
-                                let foundSubject = await getSubject(from: image)
-                                if foundSubject == nil {
-                                    UIApplication.shared.alert(title: "Failed to find subject", body: "No subject could be found in the image!")
-                                    playingGlossAnim = false
-                                } else {
+                                do {
+                                    let foundSubject = try await maskSubject(from: image)
+                                    if foundSubject == nil {
+                                        throw MaskingError.noSubjects
+                                    }
                                     finishGloss({
                                         subject = foundSubject
                                     })
+                                } catch {
+                                    UIApplication.shared.alert(title: "Failed to find subject", body: error.localizedDescription)
+                                    playingGlossAnim = false
                                 }
                             }
                         }
