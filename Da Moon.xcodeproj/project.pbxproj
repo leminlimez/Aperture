@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		6FE64D8A2D698007001BB2CC /* NavigationTransitions in Frameworks */ = {isa = PBXBuildFile; productRef = 6FE64D892D698007001BB2CC /* NavigationTransitions */; };
+		6FE64D972D6A1ADF001BB2CC /* MijickCamera in Frameworks */ = {isa = PBXBuildFile; productRef = 6FE64D962D6A1ADF001BB2CC /* MijickCamera */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,6 +28,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6FE64D972D6A1ADF001BB2CC /* MijickCamera in Frameworks */,
 				6FE64D8A2D698007001BB2CC /* NavigationTransitions in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -71,6 +73,7 @@
 			name = "Da Moon";
 			packageProductDependencies = (
 				6FE64D892D698007001BB2CC /* NavigationTransitions */,
+				6FE64D962D6A1ADF001BB2CC /* MijickCamera */,
 			);
 			productName = "Da Moon";
 			productReference = 6FE64D5B2D696A1C001BB2CC /* Da Moon.app */;
@@ -102,6 +105,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				6FE64D882D698007001BB2CC /* XCRemoteSwiftPackageReference "swiftui-navigation-transitions" */,
+				6FE64D952D6A1ADF001BB2CC /* XCRemoteSwiftPackageReference "Camera" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6FE64D5C2D696A1C001BB2CC /* Products */;
@@ -349,6 +353,14 @@
 				minimumVersion = 0.14.0;
 			};
 		};
+		6FE64D952D6A1ADF001BB2CC /* XCRemoteSwiftPackageReference "Camera" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Mijick/Camera.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.0.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -356,6 +368,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 6FE64D882D698007001BB2CC /* XCRemoteSwiftPackageReference "swiftui-navigation-transitions" */;
 			productName = NavigationTransitions;
+		};
+		6FE64D962D6A1ADF001BB2CC /* MijickCamera */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6FE64D952D6A1ADF001BB2CC /* XCRemoteSwiftPackageReference "Camera" */;
+			productName = MijickCamera;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

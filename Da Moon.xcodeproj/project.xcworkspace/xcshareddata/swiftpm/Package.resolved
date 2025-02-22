@@ -1,6 +1,15 @@
 {
-  "originHash" : "c3920913fc35f1da66d59315c931dfb688679fa9ee4a3381d3bb87caa172d10a",
+  "originHash" : "f31bff5fc1eaeaa8739968e3d48f25d2b8bf70df49a5cbec09823dc9c2d94251",
   "pins" : [
+    {
+      "identity" : "camera",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Mijick/Camera.git",
+      "state" : {
+        "revision" : "5963b61bd82edb00165494aad728b1077d8d706a",
+        "version" : "3.0.1"
+      }
+    },
     {
       "identity" : "swiftui-introspect",
       "kind" : "remoteSourceControl",
@@ -17,6 +26,15 @@
       "state" : {
         "revision" : "76ae9c621422a1f38c30a07c8b7636994b669484",
         "version" : "0.14.0"
+      }
+    },
+    {
+      "identity" : "timer",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Mijick/Timer",
+      "state" : {
+        "revision" : "342371c33c3f084d82a4818447ba77d858064c85",
+        "version" : "2.0.0"
       }
     }
   ],
