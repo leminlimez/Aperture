@@ -21,8 +21,10 @@ struct EditorView: View {
     // Images
     @State var image: UIImage
     @State var subject: UIImage?
+    @State var upscaledImage: UIImage?
     
     @State private var currentTool: Tool = .none
+    @State private var showResultsView: Bool = false
     
     // Bounding Box
     @State private var boxStartPos: CGPoint? = nil
@@ -185,6 +187,11 @@ struct EditorView: View {
             .padding(.bottom, 2)
             .padding(.top, 18)
             .background(.regularMaterial, ignoresSafeAreaEdges: .bottom)
+            .navigationDestination(isPresented: $showResultsView, destination: {
+                if let resultingImage = upscaledImage {
+                    ResultsView(originalImage: image, upscaledImage: resultingImage)
+                }
+            })
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button(action: {
@@ -192,7 +199,15 @@ struct EditorView: View {
                         if !playingGlossAnim {
                             startGloss()
                             Task {
-                                await finalizeAndUpscale()
+                                self.upscaledImage = await finalizeAndUpscale(image: image)
+                                if self.upscaledImage == nil {
+                                    playingGlossAnim = false
+                                    UIApplication.shared.alert(title: "Failed to upscale image.", body: "An unknown error occurred.")
+                                } else {
+                                    finishGloss({
+                                        self.showResultsView = true
+                                    }, finalFadeAmt: 1.0)
+                                }
                             }
                         }
                     }) {
@@ -251,64 +266,5 @@ struct EditorView: View {
     
     func fadeImage(to amt: Double) {
         imageFadeAmount = amt
-    }
-    
-    func finalizeAndUpscale() async {
-        print("Upscale button tapped.")
-        
-        
-        // Check if the UIImage has a valid CGImage.
-        if image.cgImage == nil {
-            print("Warning: The input UIImage does not have a cgImage.")
-        } else {
-            print("cgImage is available. Image size: \(image.size)")
-        }
-        
-        // Resize the image to 512x512 (logical size), forcing a scale of 1.0.
-        guard let resizedImage = image.resized(to: CGSize(width: 512, height: 512)) else {
-            print("Failed to resize input image to 512x512.")
-            playingGlossAnim = false
-            return
-        }
-        print("Resized image to 512x512.")
-        
-        // Convert the resized UIImage to a CVPixelBuffer.
-        guard let pixelBuffer = resizedImage.toCVPixelBuffer() else {
-            print("Failed to convert resized UIImage to CVPixelBuffer.")
-            playingGlossAnim = false
-            return
-        }
-        print("Successfully created CVPixelBuffer from the image. Pixel buffer size: \(CVPixelBufferGetWidth(pixelBuffer)) x \(CVPixelBufferGetHeight(pixelBuffer))")
-        
-        do {
-            print("Initializing the model...")
-            let model = try realesrgan512(configuration: MLModelConfiguration())
-            print("Model initialized successfully. Running prediction...")
-            
-            let prediction = try model.prediction(input: pixelBuffer)
-            print("Prediction complete.")
-            
-            // Convert the model's output CVPixelBuffer to a UIImage.
-            if let upscaledImage = UIImage(pixelBuffer: prediction.activation_out) {
-                print("Successfully converted prediction output to UIImage.")
-                if let finalImage = upscaledImage.resized(to: image.size) {
-                    print("Resized upscaled image to original size: \(image.size)")
-                    finishGloss {
-                        self.image = finalImage
-                        print("Image updated with stretched upscaled version.")
-                    }
-                } else {
-                    print("Failed to resize upscaled image to original size.")
-                    playingGlossAnim = false
-                }
-            } else {
-                print("Failed to convert prediction output to UIImage.")
-                playingGlossAnim = false
-            }
-
-        } catch {
-            print("Upscaling failed with error: \(error)")
-            playingGlossAnim = false
-        }
     }
 }
