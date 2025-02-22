@@ -98,6 +98,9 @@ struct EditorView: View {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button(action: {
                         // TODO: Finalize and Upscale button
+                        Task {
+                            await finalizeAndUpscale()
+                        }
                     }) {
                         Image(systemName: "photo.badge.checkmark")
                     }
@@ -108,20 +111,16 @@ struct EditorView: View {
     func finalizeAndUpscale() {
         print("Upscale button tapped.")
         
-        guard let inputImage = image else {
-            print("No image available.")
-            return
-        }
         
         // Check if the UIImage has a valid CGImage.
-        if inputImage.cgImage == nil {
+        if image.cgImage == nil {
             print("Warning: The input UIImage does not have a cgImage.")
         } else {
-            print("cgImage is available. Image size: \(inputImage.size)")
+            print("cgImage is available. Image size: \(image.size)")
         }
         
         // Resize the image to 512x512 (logical size), forcing a scale of 1.0.
-        guard let resizedImage = inputImage.resized(to: CGSize(width: 512, height: 512)) else {
+        guard let resizedImage = image.resized(to: CGSize(width: 512, height: 512)) else {
             print("Failed to resize input image to 512x512.")
             return
         }
