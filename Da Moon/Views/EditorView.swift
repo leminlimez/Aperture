@@ -22,6 +22,7 @@ struct EditorView: View {
     @State var image: UIImage
     @State var subject: UIImage?
     @State var upscaledImage: UIImage?
+    @State var sentImage: UIImage?
     
     @State private var currentTool: Tool = .none
     @State private var showResultsView: Bool = false
@@ -188,8 +189,8 @@ struct EditorView: View {
             .padding(.top, 18)
             .background(.regularMaterial, ignoresSafeAreaEdges: .bottom)
             .navigationDestination(isPresented: $showResultsView, destination: {
-                if let resultingImage = upscaledImage {
-                    ResultsView(originalImage: image, upscaledImage: resultingImage)
+                if let resultingImage = upscaledImage, let sentImage = sentImage {
+                    ResultsView(originalImage: sentImage, upscaledImage: resultingImage)
                 }
             })
             .toolbar {
@@ -199,7 +200,12 @@ struct EditorView: View {
                         if !playingGlossAnim {
                             startGloss()
                             Task {
-                                self.upscaledImage = await finalizeAndUpscale(image: image)
+                                var toSend: UIImage = image
+                                if let subject = subject { toSend = subject } // subject only
+//                                if let bounding = currentBox, let cropped = image.cropImage(to: bounding.boundingRect) { toSend = cropped }
+                                sentImage = toSend
+                                
+                                self.upscaledImage = await finalizeAndUpscale(image: toSend)
                                 if self.upscaledImage == nil {
                                     playingGlossAnim = false
                                     UIApplication.shared.alert(title: "Failed to upscale image.", body: "An unknown error occurred.")
