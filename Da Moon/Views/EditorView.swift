@@ -97,10 +97,12 @@ struct EditorView: View {
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button(action: {
-                        // TODO: Finalize and Upscale button
+                        // TODO: Add animation to upscale
+                        findingSubject = true
                         Task {
                             await finalizeAndUpscale()
                         }
+                        findingSubject = false
                     }) {
                         Image(systemName: "photo.badge.checkmark")
                     }
@@ -108,7 +110,7 @@ struct EditorView: View {
             }
         }
     }
-    func finalizeAndUpscale() {
+    func finalizeAndUpscale() async {
         print("Upscale button tapped.")
         
         
@@ -144,13 +146,19 @@ struct EditorView: View {
             // Convert the model's output CVPixelBuffer to a UIImage.
             if let upscaledImage = UIImage(pixelBuffer: prediction.activation_out) {
                 print("Successfully converted prediction output to UIImage.")
-                DispatchQueue.main.async {
-                    self.image = upscaledImage
-                    print("Image updated with upscaled version.")
+                if let finalImage = upscaledImage.resized(to: image.size) {
+                    print("Resized upscaled image to original size: \(image.size)")
+                    DispatchQueue.main.async {
+                        self.image = finalImage
+                        print("Image updated with stretched upscaled version.")
+                    }
+                } else {
+                    print("Failed to resize upscaled image to original size.")
                 }
             } else {
                 print("Failed to convert prediction output to UIImage.")
             }
+
         } catch {
             print("Upscaling failed with error: \(error)")
         }
