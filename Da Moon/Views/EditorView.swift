@@ -27,18 +27,11 @@ struct EditorView: View {
                     .animation(.easeOut, value: subject != nil)
                     .shine(playingGlossAnim)
                     .overlay(content: {
-                        GeometryReader { geometry in
-                            // MARK: Subject Only
-                            if let subject = subject {
-                                Image(uiImage: subject)
-                                    .resizable()
-                                    .frame(
-                                        width: (subject.size.width / image.size.width) * geometry.size.width,
-                                        height: (subject.size.height / image.size.height) * geometry.size.height
-                                    )
-                                    .position(x: geometry.frame(in: .local).midX, y: geometry.frame(in: .local).midY)
-                                    .transition(.opacity)
-                            }
+                        // MARK: Subject Only
+                        if let subject = subject {
+                            Image(uiImage: subject)
+                                .resizable()
+                                .transition(.opacity)
                         }
                     })
                     .aspectRatio(contentMode: .fit)
