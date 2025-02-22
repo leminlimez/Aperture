@@ -21,8 +21,10 @@ struct EditorView: View {
     // Images
     @State var image: UIImage
     @State var subject: UIImage?
+    @State var upscaledImage: UIImage?
     
     @State private var currentTool: Tool = .none
+    @State private var showResultsView: Bool = false
     
     // Bounding Box
     @State private var boxStartPos: CGPoint? = nil
@@ -185,6 +187,11 @@ struct EditorView: View {
             .padding(.bottom, 2)
             .padding(.top, 18)
             .background(.regularMaterial, ignoresSafeAreaEdges: .bottom)
+            .navigationDestination(isPresented: $showResultsView, destination: {
+                if let resultingImage = upscaledImage {
+                    ResultsView(originalImage: image, upscaledImage: resultingImage)
+                }
+            })
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button(action: {
@@ -294,7 +301,8 @@ struct EditorView: View {
                 if let finalImage = upscaledImage.resized(to: image.size) {
                     print("Resized upscaled image to original size: \(image.size)")
                     finishGloss {
-                        self.image = finalImage
+                        self.upscaledImage = finalImage
+                        self.showResultsView = true
                         print("Image updated with stretched upscaled version.")
                     }
                 } else {
