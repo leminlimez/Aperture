@@ -21,16 +21,30 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             VStack {
-                Button(action: {
-                    showCamera.toggle()
-                }) {
-                    Text("Test camera")
-                }
+                Text("Da Moon")
+                    .font(.system(size: 200)) // scale the text
+                    .fontWeight(.black)
+                    .minimumScaleFactor(0.01)
+                    .scaledToFit()
+                    .lineLimit(1)
+                    .padding(.top, 25)
+                    .padding(.horizontal, 35)
+                Spacer()
                 Button(action: {
                     showPhotoLibrary.toggle()
                 }) {
-                    Text("Test photo library")
+                    Text("Choose from Photo Library")
                 }
+                .buttonStyle(.borderedProminent)
+                .padding(5)
+                Button(action: {
+                    showCamera.toggle()
+                }) {
+                    Text("Take Photo")
+                }
+                .buttonStyle(.borderedProminent)
+                .padding(5)
+                Spacer()
             }
             .photosPicker(isPresented: $showPhotoLibrary, selection: $chosenPhotoItem)
             .onChange(of: chosenPhotoItem, initial: false) {

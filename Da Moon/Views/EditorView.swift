@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-let BOTTOM_BAR_PADDING: CGFloat = 15
+let BOTTOM_BAR_PADDING: CGFloat = 18
 
 struct EditorView: View {
     @Binding var image: UIImage?
@@ -19,7 +19,7 @@ struct EditorView: View {
                     Image(uiImage: image)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .padding(.horizontal, 30)
+                        .padding(.horizontal, 10)
                         .padding(.vertical, 10)
                         .toolbar {
                             ToolbarItemGroup(placement: .topBarTrailing) {
