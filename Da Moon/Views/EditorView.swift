@@ -34,7 +34,7 @@ struct EditorView: View {
     @State private var imageFadeAmount: Double = 1.0
     
     var body: some View {
-        ZStack {
+        VStack {
             ZoomableView {
                 Image(uiImage: image)
                     .resizable()
@@ -91,7 +91,6 @@ struct EditorView: View {
                         }
                     })
                     .aspectRatio(contentMode: .fit)
-                    .padding(.horizontal, 10)
                     .padding(.vertical, 10)
                     .simultaneousGesture(
                         DragGesture(minimumDistance: 0)
@@ -116,79 +115,76 @@ struct EditorView: View {
                             }
                     )
             }
-            VStack {
-                Spacer()
-                // MARK: Bottom Bar
-                HStack {
-                    BottomButton(icon: "lasso", action: {
-                        // TODO: Lasso Tool
-                    })
-                    BottomButton(icon: "rectangle.dashed", pressed: { return currentTool == .box }, action: {
-                        // MARK: Select bounding box tool
-                        boxStartPos = nil
-                        currentBox = nil
-                        currentTool = currentTool == .box ? .none : .box
-                    })
-                    BottomButton(icon: "person.and.background.dotted", pressed: { return subject != nil}, action: {
-                        // MARK: Select Subject
-                        if !playingGlossAnim {
-                            if subject != nil {
-                                subject = nil
-                                imageOCR.showObservations = false
-                                fadeImage(to: 1.0)
-                                return
-                            }
-                            startGloss()
-                            Task {
-                                do {
-                                    let foundSubject = try await maskSubject(from: image)
-                                    if foundSubject == nil {
-                                        throw MaskingError.noSubjects
-                                    }
-                                    finishGloss({
-                                        subject = foundSubject
-                                    }, finalFadeAmt: 0.2)
-                                } catch {
-                                    playingGlossAnim = false
-                                    fadeImage(to: 1.0)
-                                    UIApplication.shared.alert(title: "Failed to find subject", body: error.localizedDescription)
-                                }
-                            }
-                        }
-                    })
-                    /*BottomButton(icon: "character.magnify", pressed: { return imageOCR.showObservations }, action: {
-                        // MARK: Upscale Text
-                        if !playingGlossAnim {
-                            if imageOCR.showObservations {
-                                imageOCR.showObservations = false
-                                fadeImage(to: 1.0)
-                                return
-                            }
+            // MARK: Bottom Bar
+            HStack {
+                BottomButton(icon: "lasso", action: {
+                    // TODO: Lasso Tool
+                })
+                BottomButton(icon: "rectangle.dashed", pressed: { return currentTool == .box }, action: {
+                    // MARK: Select bounding box tool
+                    boxStartPos = nil
+                    currentBox = nil
+                    currentTool = currentTool == .box ? .none : .box
+                })
+                BottomButton(icon: "person.and.background.dotted", pressed: { return subject != nil}, action: {
+                    // MARK: Select Subject
+                    if !playingGlossAnim {
+                        if subject != nil {
                             subject = nil
-                            startGloss()
-                            Task {
-                                do {
-                                    guard let imageData = image.pngData() else { throw MaskingError.noData }
-                                    try await imageOCR.performOCR(imageData: imageData)
-                                    guard imageOCR.observations.count > 0 else { throw MaskingError.noText }
-                                    print(imageOCR.observations)
-                                    finishGloss({
-                                        imageOCR.showObservations = true
-                                    }, finalFadeAmt: 0.5)
-                                } catch {
-                                    playingGlossAnim = false
-                                    fadeImage(to: 1.0)
-                                    UIApplication.shared.alert(title: "Failed to find text", body: error.localizedDescription)
+                            imageOCR.showObservations = false
+                            fadeImage(to: 1.0)
+                            return
+                        }
+                        startGloss()
+                        Task {
+                            do {
+                                let foundSubject = try await maskSubject(from: image)
+                                if foundSubject == nil {
+                                    throw MaskingError.noSubjects
                                 }
+                                finishGloss({
+                                    subject = foundSubject
+                                }, finalFadeAmt: 0.2)
+                            } catch {
+                                playingGlossAnim = false
+                                fadeImage(to: 1.0)
+                                UIApplication.shared.alert(title: "Failed to find subject", body: error.localizedDescription)
                             }
                         }
-                    })*/
-                }
-                .frame(maxWidth: .infinity, maxHeight: 50)
-                .padding(.bottom, 2)
-                .padding(.top, 18)
-                .background(.regularMaterial, ignoresSafeAreaEdges: .bottom)
+                    }
+                })
+                /*BottomButton(icon: "character.magnify", pressed: { return imageOCR.showObservations }, action: {
+                    // MARK: Upscale Text
+                    if !playingGlossAnim {
+                        if imageOCR.showObservations {
+                            imageOCR.showObservations = false
+                            fadeImage(to: 1.0)
+                            return
+                        }
+                        subject = nil
+                        startGloss()
+                        Task {
+                            do {
+                                guard let imageData = image.pngData() else { throw MaskingError.noData }
+                                try await imageOCR.performOCR(imageData: imageData)
+                                guard imageOCR.observations.count > 0 else { throw MaskingError.noText }
+                                print(imageOCR.observations)
+                                finishGloss({
+                                    imageOCR.showObservations = true
+                                }, finalFadeAmt: 0.5)
+                            } catch {
+                                playingGlossAnim = false
+                                fadeImage(to: 1.0)
+                                UIApplication.shared.alert(title: "Failed to find text", body: error.localizedDescription)
+                            }
+                        }
+                    }
+                })*/
             }
+            .frame(maxWidth: .infinity, maxHeight: 50)
+            .padding(.bottom, 2)
+            .padding(.top, 18)
+            .background(.regularMaterial, ignoresSafeAreaEdges: .bottom)
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button(action: {
