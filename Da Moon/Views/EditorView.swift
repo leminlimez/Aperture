@@ -14,7 +14,8 @@ struct EditorView: View {
     @State var image: UIImage
     @State var subject: UIImage?
     
-    @State var findingSubject: Bool = false
+    @State private var playingGlossAnim: Bool = false
+    @State private var animStartTime: Date? = nil
     
     var body: some View {
         ZStack {
@@ -22,7 +23,9 @@ struct EditorView: View {
                 Image(uiImage: image)
                     .resizable()
                     .opacity(subject == nil ? 1.0 : 0.2)
-                    .shine(findingSubject)
+                    .transition(.opacity)
+                    .animation(.easeOut, value: subject != nil)
+                    .shine(playingGlossAnim)
                     .overlay(content: {
                         GeometryReader { geometry in
                             // MARK: Subject Only
@@ -34,6 +37,7 @@ struct EditorView: View {
                                         height: (subject.size.height / image.size.height) * geometry.size.height
                                     )
                                     .position(x: geometry.frame(in: .local).midX, y: geometry.frame(in: .local).midY)
+                                    .transition(.opacity)
                             }
                         }
                     })
@@ -63,15 +67,19 @@ struct EditorView: View {
                     .padding(.horizontal, BOTTOM_BAR_PADDING)
                     Button(action: {
                         // MARK: Select Subject
-                        if !findingSubject {
-                            findingSubject = true
+                        if !playingGlossAnim {
+                            startGloss()
                             Task {
                                 subject = nil
-                                subject = await getSubject(from: image)
-                                if subject == nil {
+                                let foundSubject = await getSubject(from: image)
+                                if foundSubject == nil {
                                     UIApplication.shared.alert(title: "Failed to find subject", body: "No subject could be found in the image!")
+                                    playingGlossAnim = false
+                                } else {
+                                    finishGloss({
+                                        subject = foundSubject
+                                    })
                                 }
-                                findingSubject = false
                             }
                         }
                     }) {
@@ -97,12 +105,13 @@ struct EditorView: View {
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button(action: {
-                        // TODO: Add animation to upscale
-                        findingSubject = true
-                        Task {
-                            await finalizeAndUpscale()
+                        // MARK: Upscale Image
+                        if !playingGlossAnim {
+                            startGloss()
+                            Task {
+                                await finalizeAndUpscale()
+                            }
                         }
-                        findingSubject = false
                     }) {
                         Image(systemName: "photo.badge.checkmark")
                     }
@@ -110,6 +119,26 @@ struct EditorView: View {
             }
         }
     }
+    
+    func startGloss() {
+        playingGlossAnim = true
+        animStartTime = Date()
+    }
+    
+    func finishGloss(_ action: @escaping () -> Void) {
+        if let animStartTime = animStartTime {
+            let timeLeft = GLOSS_DURATION - Date().timeIntervalSince(animStartTime).truncatingRemainder(dividingBy: GLOSS_DURATION)
+            DispatchQueue.main.asyncAfter(deadline: .now() + timeLeft) {
+                playingGlossAnim = false
+                action()
+            }
+        } else {
+            // No start date set, just end the animation
+            playingGlossAnim = false
+            action()
+        }
+    }
+    
     func finalizeAndUpscale() async {
         print("Upscale button tapped.")
         
@@ -124,6 +153,7 @@ struct EditorView: View {
         // Resize the image to 512x512 (logical size), forcing a scale of 1.0.
         guard let resizedImage = image.resized(to: CGSize(width: 512, height: 512)) else {
             print("Failed to resize input image to 512x512.")
+            playingGlossAnim = false
             return
         }
         print("Resized image to 512x512.")
@@ -131,6 +161,7 @@ struct EditorView: View {
         // Convert the resized UIImage to a CVPixelBuffer.
         guard let pixelBuffer = resizedImage.toCVPixelBuffer() else {
             print("Failed to convert resized UIImage to CVPixelBuffer.")
+            playingGlossAnim = false
             return
         }
         print("Successfully created CVPixelBuffer from the image. Pixel buffer size: \(CVPixelBufferGetWidth(pixelBuffer)) x \(CVPixelBufferGetHeight(pixelBuffer))")
@@ -148,107 +179,22 @@ struct EditorView: View {
                 print("Successfully converted prediction output to UIImage.")
                 if let finalImage = upscaledImage.resized(to: image.size) {
                     print("Resized upscaled image to original size: \(image.size)")
-                    DispatchQueue.main.async {
+                    finishGloss {
                         self.image = finalImage
                         print("Image updated with stretched upscaled version.")
                     }
                 } else {
                     print("Failed to resize upscaled image to original size.")
+                    playingGlossAnim = false
                 }
             } else {
                 print("Failed to convert prediction output to UIImage.")
+                playingGlossAnim = false
             }
 
         } catch {
             print("Upscaling failed with error: \(error)")
+            playingGlossAnim = false
         }
-    }
-}
-extension UIImage {
-    /// Resizes the image to the specified size with a forced scale of 1.0.
-    func resized(to size: CGSize) -> UIImage? {
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = 1.0  // Force scale to 1.0 so the underlying pixels match the target size
-        let renderer = UIGraphicsImageRenderer(size: size, format: format)
-        return renderer.image { _ in
-            self.draw(in: CGRect(origin: .zero, size: size))
-        }
-    }
-    
-    /// Converts UIImage to a CVPixelBuffer.
-    func toCVPixelBuffer() -> CVPixelBuffer? {
-        guard let cgImage = self.cgImage else {
-            print("No CGImage available in UIImage")
-            return nil
-        }
-        
-        let width = cgImage.width
-        let height = cgImage.height
-        
-        let attrs = [
-            kCVPixelBufferCGImageCompatibilityKey: kCFBooleanTrue,
-            kCVPixelBufferCGBitmapContextCompatibilityKey: kCFBooleanTrue
-        ] as CFDictionary
-        
-        var pixelBuffer: CVPixelBuffer?
-        let status = CVPixelBufferCreate(kCFAllocatorDefault, width, height,
-                                         kCVPixelFormatType_32ARGB, attrs, &pixelBuffer)
-        if status != kCVReturnSuccess {
-            print("CVPixelBufferCreate failed with status: \(status)")
-            return nil
-        }
-        guard let buffer = pixelBuffer else {
-            print("CVPixelBuffer is nil")
-            return nil
-        }
-        
-        CVPixelBufferLockBaseAddress(buffer, CVPixelBufferLockFlags(rawValue: 0))
-        if let pixelData = CVPixelBufferGetBaseAddress(buffer) {
-            let rgbColorSpace = CGColorSpaceCreateDeviceRGB()
-            // Using CGImageAlphaInfo.noneSkipFirst for input conversion
-            if let context = CGContext(data: pixelData,
-                                       width: width,
-                                       height: height,
-                                       bitsPerComponent: 8,
-                                       bytesPerRow: CVPixelBufferGetBytesPerRow(buffer),
-                                       space: rgbColorSpace,
-                                       bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue) {
-                context.draw(cgImage, in: CGRect(x: 0, y: 0, width: CGFloat(width), height: CGFloat(height)))
-            } else {
-                print("Failed to create CGContext")
-                CVPixelBufferUnlockBaseAddress(buffer, CVPixelBufferLockFlags(rawValue: 0))
-                return nil
-            }
-        }
-        CVPixelBufferUnlockBaseAddress(buffer, CVPixelBufferLockFlags(rawValue: 0))
-        return buffer
-    }
-    
-    /// Initializes a UIImage from a CVPixelBuffer using updated bitmap info for proper color mapping.
-    convenience init?(pixelBuffer: CVPixelBuffer) {
-        CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
-        defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly) }
-        
-        guard let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer) else { return nil }
-        
-        let width = CVPixelBufferGetWidth(pixelBuffer)
-        let height = CVPixelBufferGetHeight(pixelBuffer)
-        let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
-        
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
-        // Updated bitmap info: using byteOrder32Little and premultipliedFirst to correctly interpret BGRA
-        let bitmapInfo = CGBitmapInfo.byteOrder32Little.rawValue | CGImageAlphaInfo.premultipliedFirst.rawValue
-        
-        guard let context = CGContext(data: baseAddress,
-                                      width: width,
-                                      height: height,
-                                      bitsPerComponent: 8,
-                                      bytesPerRow: bytesPerRow,
-                                      space: colorSpace,
-                                      bitmapInfo: bitmapInfo),
-              let cgImage = context.makeImage() else {
-            return nil
-        }
-        self.init(cgImage: cgImage)
     }
 }
