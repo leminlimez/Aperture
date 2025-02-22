@@ -11,29 +11,35 @@ import CoreML
 let BOTTOM_BAR_PADDING: CGFloat = 18
 
 struct EditorView: View {
-    @Binding var image: UIImage?
+    @State var image: UIImage
+    @State var subject: UIImage?
+    
+    @State var findingSubject: Bool = false
     
     var body: some View {
         ZStack {
-            if let image = image {
-                ZoomableView {
-                    Image(uiImage: image)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 10)
-                        .toolbar {
-                            ToolbarItemGroup(placement: .topBarTrailing) {
-                                Button(action: {
-                                    print("Failed to convert UIImage to CVPixelBuffer")
-                                    finalizeAndUpscale()
-                                    // TODO: Finalize and Upscale button
-                                }) {
-                                    Image(systemName: "photo.badge.checkmark")
-                                }
+            ZoomableView {
+                Image(uiImage: image)
+                    .resizable()
+                    .opacity(subject == nil ? 1.0 : 0.2)
+                    .shine(findingSubject)
+                    .overlay(content: {
+                        GeometryReader { geometry in
+                            // MARK: Subject Only
+                            if let subject = subject {
+                                Image(uiImage: subject)
+                                    .resizable()
+                                    .frame(
+                                        width: (subject.size.width / image.size.width) * geometry.size.width,
+                                        height: (subject.size.height / image.size.height) * geometry.size.height
+                                    )
+                                    .position(x: geometry.frame(in: .local).midX, y: geometry.frame(in: .local).midY)
                             }
                         }
-                }
+                    })
+                    .aspectRatio(contentMode: .fit)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 10)
             }
             VStack {
                 Spacer()
@@ -56,7 +62,18 @@ struct EditorView: View {
                     }
                     .padding(.horizontal, BOTTOM_BAR_PADDING)
                     Button(action: {
-                        // TODO: Select Subject
+                        // MARK: Select Subject
+                        if !findingSubject {
+                            findingSubject = true
+                            Task {
+                                subject = nil
+                                subject = await getSubject(from: image)
+                                if subject == nil {
+                                    UIApplication.shared.alert(title: "Failed to find subject", body: "No subject could be found in the image!")
+                                }
+                                findingSubject = false
+                            }
+                        }
                     }) {
                         Image(systemName: "person.and.background.dotted")
                             .resizable()
@@ -76,6 +93,15 @@ struct EditorView: View {
                 .padding(.bottom, 10)
                 .padding(.top, 20)
                 .background(.regularMaterial, ignoresSafeAreaEdges: .bottom)
+            }
+            .toolbar {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button(action: {
+                        // TODO: Finalize and Upscale button
+                    }) {
+                        Image(systemName: "photo.badge.checkmark")
+                    }
+                }
             }
         }
     }
