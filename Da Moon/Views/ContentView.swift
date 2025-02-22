@@ -54,6 +54,7 @@ struct ContentView: View {
                 EditorView(image: $selectedImage)
             }
         }
+        .navigationTransition(.fade(.cross))
     }
 }
 
