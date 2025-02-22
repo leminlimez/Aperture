@@ -125,10 +125,10 @@ struct ResultsView: View {
             .background(.regularMaterial, ignoresSafeAreaEdges: .bottom)
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
-                    Button(action: {
-                        // TODO: Save Photo
-                    }) {
-                        Image(systemName: "square.and.arrow.down")
+                    // MARK: Share Upscaled Photo
+                    let upscaled = Image(uiImage: upscaledImage)
+                    ShareLink(item: upscaled, preview: SharePreview("Upscaled Result", image: upscaled)) {
+                        Image(systemName: "square.and.arrow.up")
                     }
                 }
             }
