@@ -8,7 +8,7 @@
 import SwiftUI
 import CoreML
 
-let BOTTOM_BAR_PADDING: CGFloat = 18
+let BOTTOM_BAR_PADDING: CGFloat = 12
 
 struct EditorView: View {
     @State var image: UIImage
@@ -42,27 +42,20 @@ struct EditorView: View {
                 Spacer()
                 // MARK: Bottom Bar
                 HStack {
-                    Button(action: {
+                    BottomButton(icon: "lasso", action: {
                         // TODO: Lasso Tool
-                    }) {
-                        Image(systemName: "lasso")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                    }
-                    .padding(.horizontal, BOTTOM_BAR_PADDING)
-                    Button(action: {
+                    })
+                    BottomButton(icon: "rectangle.dashed", action: {
                         // TODO: Select bounding box tool
-                    }) {
-                        Image(systemName: "rectangle.dashed")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                    }
-                    .padding(.horizontal, BOTTOM_BAR_PADDING)
-                    Button(action: {
+                    })
+                    BottomButton(icon: "person.and.background.dotted", pressed: { return subject != nil}, action: {
                         // MARK: Select Subject
                         if !playingGlossAnim {
+                            if subject != nil {
+                                subject = nil
+                                return
+                            }
                             startGloss()
-                            subject = nil
                             Task {
                                 do {
                                     let foundSubject = try await maskSubject(from: image)
@@ -78,24 +71,14 @@ struct EditorView: View {
                                 }
                             }
                         }
-                    }) {
-                        Image(systemName: "person.and.background.dotted")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                    }
-                    .padding(.horizontal, BOTTOM_BAR_PADDING)
-                    Button(action: {
+                    })
+                    BottomButton(icon: "character.magnify", action: {
                         // TODO: Upscale Text
-                    }) {
-                        Image(systemName: "character.magnify")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                    }
-                    .padding(.horizontal, BOTTOM_BAR_PADDING)
+                    })
                 }
-                .frame(maxWidth: .infinity, maxHeight: 40)
-                .padding(.bottom, 10)
-                .padding(.top, 20)
+                .frame(maxWidth: .infinity, maxHeight: 50)
+                .padding(.bottom, 2)
+                .padding(.top, 18)
                 .background(.regularMaterial, ignoresSafeAreaEdges: .bottom)
             }
             .toolbar {
@@ -113,6 +96,30 @@ struct EditorView: View {
                     }
                 }
             }
+        }
+    }
+    
+    struct BottomButton: View {
+        var icon: String
+        var pressed: () -> Bool = { return false }
+        var action: () -> Void
+        
+        var body: some View {
+            Button(action: action) {
+                Image(systemName: icon)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+            }
+            .padding(8)
+            .background {
+                if pressed() {
+                    RoundedRectangle(cornerRadius: 8)
+                        .foregroundStyle(.thinMaterial)
+                } else {
+                    Color.clear
+                }
+            }
+            .padding(.horizontal, BOTTOM_BAR_PADDING)
         }
     }
     
