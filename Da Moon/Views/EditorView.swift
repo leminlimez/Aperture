@@ -18,21 +18,27 @@ struct EditorView: View {
     var body: some View {
         ZStack {
             ZoomableView {
-                ZStack {
-                    Image(uiImage: image)
-                        .resizable()
-                        .opacity(subject == nil ? 1.0 : 0.2)
-                        .shine(findingSubject)
-                    
-                    // MARK: Subject Only
-                    if let subject = subject {
-                        Image(uiImage: subject)
-                            .resizable()
-                    }
-                }
-                .aspectRatio(contentMode: .fit)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 10)
+                Image(uiImage: image)
+                    .resizable()
+                    .opacity(subject == nil ? 1.0 : 0.2)
+                    .shine(findingSubject)
+                    .overlay(content: {
+                        GeometryReader { geometry in
+                            // MARK: Subject Only
+                            if let subject = subject {
+                                Image(uiImage: subject)
+                                    .resizable()
+                                    .frame(
+                                        width: (subject.size.width / image.size.width) * geometry.size.width,
+                                        height: (subject.size.height / image.size.height) * geometry.size.height
+                                    )
+                                    .position(x: geometry.frame(in: .local).midX, y: geometry.frame(in: .local).midY)
+                            }
+                        }
+                    })
+                    .aspectRatio(contentMode: .fit)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 10)
             }
             VStack {
                 Spacer()

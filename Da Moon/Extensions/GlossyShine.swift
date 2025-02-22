@@ -7,6 +7,8 @@
 
 import SwiftUI
 
+let GLOSS_DURATION: Double = 0.75
+
 extension View {
     @ViewBuilder
     func shine(_ toggle: Bool) -> some View {
@@ -36,8 +38,8 @@ extension View {
                             content
                                 .offset(x: -size.width / 2 + (progress * size.width))
                         }, keyframes: { _ in
-                            CubicKeyframe(.zero, duration: 0.1)
-                            CubicKeyframe(1, duration: 0.5)
+                            CubicKeyframe(.zero, duration: 0.0)
+                            CubicKeyframe(1, duration: GLOSS_DURATION)
                         })
                         .rotationEffect(.degrees(45))
                         .opacity(toggle ? 1 : 0)
