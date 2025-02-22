@@ -8,14 +8,21 @@
 import SwiftUI
 
 struct ContentView: View {
+    // Camera Variables
+    @State private var capturedImage: UIImage? = nil
+    @State private var showCamera: Bool = false
+    
     var body: some View {
         VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+            Button(action: {
+                showCamera.toggle()
+            }) {
+                Text("Test camera")
+            }
         }
-        .padding()
+        .sheet(isPresented: $showCamera) {
+            MainCameraView(image: $capturedImage)
+        }
     }
 }
 
