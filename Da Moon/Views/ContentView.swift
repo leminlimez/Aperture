@@ -39,6 +39,7 @@ struct ContentView: View {
                         guard let imageData = try await chosenPhoto.loadTransferable(type: Data.self) else { return }
                         guard let inputImage = UIImage(data: imageData) else { return }
                         selectedImage = inputImage
+                        chosenPhotoItem = nil
                     }
                 }
             }
