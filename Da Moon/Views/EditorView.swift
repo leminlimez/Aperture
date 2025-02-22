@@ -11,27 +11,52 @@ import CoreML
 let BOTTOM_BAR_PADDING: CGFloat = 12
 
 struct EditorView: View {
+    // View Models
+    var imageOCR = OCR()
+    
+    // Images
     @State var image: UIImage
     @State var subject: UIImage?
     
+    // Gloss Properties
     @State private var playingGlossAnim: Bool = false
     @State private var animStartTime: Date? = nil
+    @State private var imageFadeAmount: Double = 1.0
     
     var body: some View {
         ZStack {
             ZoomableView {
                 Image(uiImage: image)
                     .resizable()
-                    .opacity(subject == nil ? 1.0 : 0.2)
+                    .opacity(imageFadeAmount)
                     .transition(.opacity)
-                    .animation(.easeOut, value: subject != nil)
+                    .animation(.easeOut, value: imageFadeAmount)
                     .shine(playingGlossAnim)
                     .overlay(content: {
-                        // MARK: Subject Only
-                        if let subject = subject {
-                            Image(uiImage: subject)
-                                .resizable()
-                                .transition(.opacity)
+                        ZStack {
+                            // MARK: Subject View
+                            if let subject = subject {
+                                Image(uiImage: subject)
+                                    .resizable()
+                                    .transition(.opacity)
+                            }
+                            // MARK: Detected Text View
+                            if imageOCR.showObservations {
+                                ForEach(imageOCR.observations, id: \.self) { observation in
+                                    Box(observation: observation)
+                                        .fill(Color.black.opacity(0.3))
+                                        .overlay {
+                                            Text(observation.topCandidates(1).first?.string ?? "????")
+                                                .frame(width: observation.boundingBox.width, height: observation.boundingBox.height)
+                                                .position(observation.boundingBox.toImageCoordinates(image.size, origin: .upperLeft).origin)
+                                                .font(.system(size: 100))
+                                                .minimumScaleFactor(0.1)
+                                                .scaledToFit()
+                                                .foregroundStyle(.white)
+                                                .textSelection(.enabled)
+                                        }
+                                }
+                            }
                         }
                     })
                     .aspectRatio(contentMode: .fit)
@@ -53,6 +78,8 @@ struct EditorView: View {
                         if !playingGlossAnim {
                             if subject != nil {
                                 subject = nil
+                                imageOCR.showObservations = false
+                                fadeImage(to: 1.0)
                                 return
                             }
                             startGloss()
@@ -64,16 +91,41 @@ struct EditorView: View {
                                     }
                                     finishGloss({
                                         subject = foundSubject
-                                    })
+                                    }, finalFadeAmt: 0.2)
                                 } catch {
-                                    UIApplication.shared.alert(title: "Failed to find subject", body: error.localizedDescription)
                                     playingGlossAnim = false
+                                    fadeImage(to: 1.0)
+                                    UIApplication.shared.alert(title: "Failed to find subject", body: error.localizedDescription)
                                 }
                             }
                         }
                     })
-                    BottomButton(icon: "character.magnify", action: {
-                        // TODO: Upscale Text
+                    BottomButton(icon: "character.magnify", pressed: { return imageOCR.showObservations }, action: {
+                        // MARK: Upscale Text
+                        if !playingGlossAnim {
+                            if imageOCR.showObservations {
+                                imageOCR.showObservations = false
+                                fadeImage(to: 1.0)
+                                return
+                            }
+                            subject = nil
+                            startGloss()
+                            Task {
+                                do {
+                                    guard let imageData = image.pngData() else { throw MaskingError.noData }
+                                    try await imageOCR.performOCR(imageData: imageData)
+                                    guard imageOCR.observations.count > 0 else { throw MaskingError.noText }
+                                    print(imageOCR.observations)
+                                    finishGloss({
+                                        imageOCR.showObservations = true
+                                    }, finalFadeAmt: 0.5)
+                                } catch {
+                                    playingGlossAnim = false
+                                    fadeImage(to: 1.0)
+                                    UIApplication.shared.alert(title: "Failed to find text", body: error.localizedDescription)
+                                }
+                            }
+                        }
                     })
                 }
                 .frame(maxWidth: .infinity, maxHeight: 50)
@@ -126,20 +178,27 @@ struct EditorView: View {
     func startGloss() {
         playingGlossAnim = true
         animStartTime = Date()
+        fadeImage(to: 0.7)
     }
     
-    func finishGloss(_ action: @escaping () -> Void) {
+    func finishGloss(_ action: @escaping () -> Void, finalFadeAmt: Double = 1.0) {
         if let animStartTime = animStartTime {
             let timeLeft = GLOSS_DURATION - Date().timeIntervalSince(animStartTime).truncatingRemainder(dividingBy: GLOSS_DURATION)
             DispatchQueue.main.asyncAfter(deadline: .now() + timeLeft) {
                 playingGlossAnim = false
                 action()
+                fadeImage(to: finalFadeAmt)
             }
         } else {
             // No start date set, just end the animation
             playingGlossAnim = false
             action()
+            fadeImage(to: finalFadeAmt)
         }
+    }
+    
+    func fadeImage(to amt: Double) {
+        imageFadeAmount = amt
     }
     
     func finalizeAndUpscale() async {
