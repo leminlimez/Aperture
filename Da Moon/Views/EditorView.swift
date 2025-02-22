@@ -220,7 +220,8 @@ struct EditorView: View {
                             Task {
                                 var toSend: UIImage = image
                                 if let subject = subject { toSend = subject } // subject only
-                                if let bounding = getCroppingRect(), let cropped = image.cropImage(to: bounding) { toSend = cropped }
+                                // crop the sending image to the bounding box
+                                if let bounding = getCroppingRect(), let cropped = toSend.cropImage(to: bounding) { toSend = cropped }
                                 sentImage = toSend
                                 
                                 self.upscaledImage = await finalizeAndUpscale(image: toSend)
