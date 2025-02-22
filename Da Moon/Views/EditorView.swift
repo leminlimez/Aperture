@@ -31,6 +31,10 @@ struct EditorView: View {
     @State private var boxStartPos: CGPoint? = nil
     @State private var currentBox: Path? = nil
     
+    // Image View Bounds
+    @State private var imageSize: CGSize = CGSizeZero
+    @State private var imagePos: CGPoint = CGPointZero
+    
     // Gloss Properties
     @State private var playingGlossAnim: Bool = false
     @State private var animStartTime: Date? = nil
@@ -45,6 +49,20 @@ struct EditorView: View {
                     .transition(.opacity)
                     .animation(.easeOut, value: imageFadeAmount)
                     .shine(playingGlossAnim)
+                    .background {
+                        GeometryReader { geometry in
+                            Color.clear
+                                .onChange(of: geometry.size, initial: true) {
+                                    imageSize = geometry.size
+                                }
+                                .onChange(of: geometry.frame(in: .local).minX, initial: true) {
+                                    imagePos = CGPoint(x: geometry.frame(in: .local).minX, y: geometry.frame(in: .local).minY)
+                                }
+                                .onChange(of: geometry.frame(in: .local).minY, initial: true) {
+                                    imagePos = CGPoint(x: geometry.frame(in: .local).minX, y: geometry.frame(in: .local).minY)
+                                }
+                        }
+                    }
                     .overlay(content: {
                         ZStack {
                             // MARK: Subject View
@@ -202,7 +220,7 @@ struct EditorView: View {
                             Task {
                                 var toSend: UIImage = image
                                 if let subject = subject { toSend = subject } // subject only
-                                if let bounding = currentBox, let cropped = image.cropImage(to: bounding.boundingRect) { toSend = cropped }
+                                if let bounding = getCroppingRect(), let cropped = image.cropImage(to: bounding) { toSend = cropped }
                                 sentImage = toSend
                                 
                                 self.upscaledImage = await finalizeAndUpscale(image: toSend)
@@ -272,5 +290,15 @@ struct EditorView: View {
     
     func fadeImage(to amt: Double) {
         imageFadeAmount = amt
+    }
+    
+    func getCroppingRect() -> CGRect? {
+        let scale = image.size.width / imageSize.width
+        guard let currentBox = currentBox else { return nil }
+        let box = currentBox.boundingRect
+        return CGRect(
+            x: (box.minX - imagePos.x) * scale, y: (box.minY - imagePos.y) * scale,
+            width: box.width * scale, height: box.height * scale
+        )
     }
 }
