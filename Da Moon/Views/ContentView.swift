@@ -66,7 +66,9 @@ struct ContentView: View {
                 }
             }
             .navigationDestination(isPresented: $showEditorView) {
-                EditorView(image: $selectedImage)
+                if let selectedImage = selectedImage {
+                    EditorView(image: selectedImage)
+                }
             }
         }
         .navigationTransition(.fade(.cross))

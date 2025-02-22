@@ -10,27 +10,29 @@ import SwiftUI
 let BOTTOM_BAR_PADDING: CGFloat = 18
 
 struct EditorView: View {
-    @Binding var image: UIImage?
+    @State var image: UIImage
+    @State var subject: UIImage?
+    
+    @State var findingSubject: Bool = false
     
     var body: some View {
         ZStack {
-            if let image = image {
-                ZoomableView {
+            ZoomableView {
+                ZStack {
                     Image(uiImage: image)
                         .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 10)
-                        .toolbar {
-                            ToolbarItemGroup(placement: .topBarTrailing) {
-                                Button(action: {
-                                    // TODO: Finalize and Upscale button
-                                }) {
-                                    Image(systemName: "photo.badge.checkmark")
-                                }
-                            }
-                        }
+                        .opacity(subject == nil ? 1.0 : 0.2)
+                        .shine(findingSubject)
+                    
+                    // MARK: Subject Only
+                    if let subject = subject {
+                        Image(uiImage: subject)
+                            .resizable()
+                    }
                 }
+                .aspectRatio(contentMode: .fit)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 10)
             }
             VStack {
                 Spacer()
@@ -53,7 +55,18 @@ struct EditorView: View {
                     }
                     .padding(.horizontal, BOTTOM_BAR_PADDING)
                     Button(action: {
-                        // TODO: Select Subject
+                        // MARK: Select Subject
+                        if !findingSubject {
+                            findingSubject = true
+                            Task {
+                                subject = nil
+                                subject = await getSubject(from: image)
+                                if subject == nil {
+                                    UIApplication.shared.alert(title: "Failed to find subject", body: "No subject could be found in the image!")
+                                }
+                                findingSubject = false
+                            }
+                        }
                     }) {
                         Image(systemName: "person.and.background.dotted")
                             .resizable()
@@ -73,6 +86,15 @@ struct EditorView: View {
                 .padding(.bottom, 10)
                 .padding(.top, 20)
                 .background(.regularMaterial, ignoresSafeAreaEdges: .bottom)
+            }
+            .toolbar {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button(action: {
+                        // TODO: Finalize and Upscale button
+                    }) {
+                        Image(systemName: "photo.badge.checkmark")
+                    }
+                }
             }
         }
     }
