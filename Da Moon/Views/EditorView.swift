@@ -156,7 +156,7 @@ struct EditorView: View {
                             }
                         }
                     })
-                    BottomButton(icon: "character.magnify", pressed: { return imageOCR.showObservations }, action: {
+                    /*BottomButton(icon: "character.magnify", pressed: { return imageOCR.showObservations }, action: {
                         // MARK: Upscale Text
                         if !playingGlossAnim {
                             if imageOCR.showObservations {
@@ -182,7 +182,7 @@ struct EditorView: View {
                                 }
                             }
                         }
-                    })
+                    })*/
                 }
                 .frame(maxWidth: .infinity, maxHeight: 50)
                 .padding(.bottom, 2)
