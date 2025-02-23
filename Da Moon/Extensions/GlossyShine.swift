@@ -23,7 +23,6 @@ struct ShineView: View {
     var toggle: Bool
     
     @State private var triggered: Bool = false
-    @State private var timer: Timer?
     
     var body: some View {
         GeometryReader { geometry in
@@ -49,6 +48,16 @@ struct ShineView: View {
                 .keyframeAnimator(initialValue: 0.0, trigger: triggered, content: { content, progress in
                     content
                         .offset(x: (2.0 * -size.width / 3.0) + (progress * size.width * 3))
+                        .onChange(of: progress, initial: false) {
+                            if progress == 1.0 {
+                                self.triggered = false
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                                    if toggle {
+                                        self.triggered = true
+                                    }
+                                }
+                            }
+                        }
                 }, keyframes: { _ in
                     CubicKeyframe(.zero, duration: 0.05)
                     CubicKeyframe(1, duration: GLOSS_DURATION)
@@ -59,24 +68,11 @@ struct ShineView: View {
                 .onChange(of: toggle, initial: true) {
                     if toggle {
                         triggered = true
-                        startRepeatingAnimation()
                     } else {
-                        timer?.invalidate()
                         triggered = false
                     }
                 }
         }
         .clipShape(Rectangle())
-    }
-    
-    func startRepeatingAnimation() {
-        // Invalidate previous timer, if any
-        timer?.invalidate()
-        
-        // Set a new repeating timer
-        timer = Timer.scheduledTimer(withTimeInterval: GLOSS_DURATION + 0.1, repeats: true) { _ in
-            // Toggle the animation trigger every time the timer fires
-            triggered.toggle()
-        }
     }
 }
