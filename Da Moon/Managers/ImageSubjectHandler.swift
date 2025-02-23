@@ -122,7 +122,7 @@ func finalizeAndUpscaleServer(image: UIImage) async -> UIImage? {
     }
     
     // Replace the string below with your actual server URL.
-    guard let url = URL(string: "https://2bb3-174-194-4-66.ngrok-free.app/run_inference") else {
+    guard let url = URL(string: "https://4e52-128-211-155-43.ngrok-free.app/run_inference") else {
         print("Invalid URL.")
         return nil
     }
