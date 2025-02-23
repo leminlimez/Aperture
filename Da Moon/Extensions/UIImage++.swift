@@ -77,15 +77,15 @@ extension UIImage {
     }
     
     func jpegBase64(compressionQuality: CGFloat = 1.0) -> String? {
-            guard let jpegData = self.jpegData(compressionQuality: compressionQuality) else { return nil }
-            return jpegData.base64EncodedString()
-        }
+        guard let jpegData = self.jpegData(compressionQuality: compressionQuality) else { return nil }
+        return jpegData.base64EncodedString()
+    }
         
-        /// Initialize UIImage from a Base64 encoded string.
-        convenience init?(base64: String) {
-            guard let data = Data(base64Encoded: base64) else { return nil }
-            self.init(data: data)
-        }
+    /// Initialize UIImage from a Base64 encoded string.
+    convenience init?(base64: String) {
+        guard let data = Data(base64Encoded: base64) else { return nil }
+        self.init(data: data)
+    }
     
     /// Initializes a UIImage from a CVPixelBuffer using updated bitmap info for proper color mapping.
     convenience init?(pixelBuffer: CVPixelBuffer, scale: CGFloat? = nil, orientation: UIImage.Orientation? = nil) {
