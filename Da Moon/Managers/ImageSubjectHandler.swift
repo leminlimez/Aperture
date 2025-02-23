@@ -146,13 +146,17 @@ func finalizeAndUpscaleServer(image: UIImage) async -> UIImage? {
 }
 
 func combinedUpscale(image: UIImage) async -> UIImage? {
+    let localOnly = UserDefaults.standard.bool(forKey: "useLocalOnly")
+    
     // Try to get the upscaled image from the server.
-    if let serverUpscaled = await finalizeAndUpscaleServer(image: image) {
+    if !localOnly, let serverUpscaled = await finalizeAndUpscaleServer(image: image) {
         return serverUpscaled
     } else {
-        // Notify the user on the main thread.
-        DispatchQueue.main.async {
-            UIApplication.shared.alert(title: "Notice", body: "Server unreachable. Using local upscaling instead.")
+        if !localOnly {
+            // Notify the user on the main thread.
+            DispatchQueue.main.async {
+                UIApplication.shared.alert(title: "Notice", body: "Server unreachable. Using local upscaling instead.")
+            }
         }
         // Fall back to local upscaling.
         return await finalizeAndUpscale(image: image)
