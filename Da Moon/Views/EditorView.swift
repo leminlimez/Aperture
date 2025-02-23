@@ -9,6 +9,7 @@ import SwiftUI
 import CoreML
 
 let BOTTOM_BAR_PADDING: CGFloat = 12
+let SUBJECT_FADE: Double = 0.2
 
 enum Tool {
     case None, Box, Lasso
@@ -193,7 +194,7 @@ struct EditorView: View {
                                 }
                                 finishGloss({
                                     subject = foundSubject
-                                }, finalFadeAmt: 0.2)
+                                }, finalFadeAmt: SUBJECT_FADE)
                             } catch {
                                 playingGlossAnim = false
                                 fadeImage(to: 1.0)
@@ -239,12 +240,18 @@ struct EditorView: View {
                     ResultsView(originalImage: sentImage, upscaledImage: resultingImage)
                 }
             })
+            .onAppear {
+                // set the fade back if there is already a subject
+                if subject != nil {
+                    fadeImage(to: SUBJECT_FADE)
+                }
+            }
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button(action: {
                         // MARK: Upscale Image
                         if !playingGlossAnim {
-                            startGloss()
+                            startGloss(fade: subject != nil ? SUBJECT_FADE : 0.7)
                             Task {
                                 var toSend: UIImage = image
                                 if let subject = subject { toSend = subject } // subject only
@@ -254,9 +261,9 @@ struct EditorView: View {
                                 if let filled = toSend.fillTransparency(with: UIColor.white.cgColor) { toSend = filled }
                                 sentImage = toSend
                                 
-//                                self.upscaledImage = await finalizeAndUpscale(image: toSend)
+                                self.upscaledImage = await finalizeAndUpscale(image: toSend)
 //                                self.upscaledImage = await finalizeAndUpscaleServer(image: toSend)
-                                self.upscaledImage = await combinedUpscale(image: toSend)
+//                                self.upscaledImage = await combinedUpscale(image: toSend)
                                 if self.upscaledImage == nil {
                                     playingGlossAnim = false
                                     UIApplication.shared.alert(title: "Failed to upscale image.", body: "An unknown error occurred.")
@@ -299,15 +306,16 @@ struct EditorView: View {
         }
     }
     
-    func startGloss() {
+    func startGloss(fade: Double = 0.7) {
         playingGlossAnim = true
         animStartTime = Date()
-        fadeImage(to: 0.7)
+        fadeImage(to: fade)
     }
     
     func finishGloss(_ action: @escaping () -> Void, finalFadeAmt: Double = 1.0) {
         if let animStartTime = animStartTime {
-            let timeLeft = GLOSS_DURATION - Date().timeIntervalSince(animStartTime).truncatingRemainder(dividingBy: GLOSS_DURATION)
+            let animTime = GLOSS_DURATION + 0.05
+            let timeLeft = animTime - Date().timeIntervalSince(animStartTime).truncatingRemainder(dividingBy: animTime)
             DispatchQueue.main.asyncAfter(deadline: .now() + timeLeft) {
                 playingGlossAnim = false
                 action()
