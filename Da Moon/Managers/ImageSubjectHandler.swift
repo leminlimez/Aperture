@@ -148,17 +148,23 @@ func finalizeAndUpscaleServer(image: UIImage) async -> UIImage? {
     }
     
     // Replace the string below with your actual server URL.
-    guard let url = URL(string: "https://your.server.endpoint/api/upscale") else {
+    guard let url = URL(string: "https://128.210.107.131:5000/run_inference:") else {
         print("Invalid URL.")
+        return nil
+    }
+    
+    guard let apiKey = ProcessInfo.processInfo.environment["API_SERVER_KEY"] else {
+        print("API key not found in environment variables.")
         return nil
     }
     
     // Create the POST request.
     var request = URLRequest(url: url)
+    request.timeoutInterval = 10
     request.httpMethod = "POST"
-    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.setValue("\(apiKey)", forHTTPHeaderField: "X-API_KEY")
     request.httpBody = jsonData
-    
+    print("Sending request")
     do {
         // Send the request and await the response.
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -181,5 +187,19 @@ func finalizeAndUpscaleServer(image: UIImage) async -> UIImage? {
     } catch {
         print("Error during network request: \(error)")
         return nil
+    }
+}
+
+func combinedUpscale(image: UIImage) async -> UIImage? {
+    // Try to get the upscaled image from the server.
+    if let serverUpscaled = await finalizeAndUpscaleServer(image: image) {
+        return serverUpscaled
+    } else {
+        // Notify the user on the main thread.
+        DispatchQueue.main.async {
+            UIApplication.shared.alert(title: "Notice", body: "Server unreachable. Using local upscaling instead.")
+        }
+        // Fall back to local upscaling.
+        return await finalizeAndUpscale(image: image)
     }
 }
