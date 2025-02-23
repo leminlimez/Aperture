@@ -30,6 +30,7 @@ struct MainCameraView: View {
             .setAudioAvailability(false)
             .setGridVisibility(false)
             .setGridVisibility(false)
+            .setResolution(.iFrame960x540)
             .startSession()
     }
 }
