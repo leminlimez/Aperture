@@ -19,6 +19,13 @@ extension UIImage {
         }
     }
     
+    // MARK: Cropping
+    func cropImage(to rect: CGRect) -> UIImage? {
+        guard let cg = cgImage else { return nil }
+        guard let croppedCGImage = cg.cropping(to: rect) else { return nil }
+        return UIImage(cgImage: croppedCGImage, scale: scale, orientation: imageOrientation)
+    }
+    
     // MARK: CVPixelBuffer Operations
     /// Converts UIImage to a CVPixelBuffer.
     func toCVPixelBuffer() -> CVPixelBuffer? {

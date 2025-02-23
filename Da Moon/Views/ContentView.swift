@@ -9,7 +9,7 @@ import SwiftUI
 import PhotosUI
 import NavigationTransitions
 
-let BUTTON_SIZE: CGFloat = 120.0
+let BUTTON_SIZE: CGFloat = 145.0
 
 struct ContentView: View {
     // Camera Variables
