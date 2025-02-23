@@ -16,6 +16,7 @@ enum Tool {
 }
 
 struct EditorView: View {
+    @Environment(\.dismiss) var dismiss
     // View Models
     var imageOCR = OCR()
     
@@ -245,7 +246,18 @@ struct EditorView: View {
                     fadeImage(to: SUBJECT_FADE)
                 }
             }
+            .navigationBarBackButtonHidden(true)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        HStack {
+                            Image(systemName: "chevron.left")
+                            Text("Back")
+                        }
+                    }
+                }
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button(action: {
                         // MARK: Upscale Image

@@ -94,7 +94,7 @@ struct ContentView: View {
                 }
             }
         }
-        .navigationTransition(.fade(.cross))
+//        .navigationTransition(.fade(.cross))
     }
     
     var buttons: some View {

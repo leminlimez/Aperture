@@ -15,6 +15,8 @@ enum OverlayMode: String, CaseIterable {
 let DRAGGABLE_CIRCLE_SIZE: CGFloat = 30
 
 struct ResultsView: View {
+    @Environment(\.dismiss) var dismiss
+    
     // Images
     var originalImage: UIImage
     var upscaledImage: UIImage
@@ -137,7 +139,18 @@ struct ResultsView: View {
             .padding(.top, 4)
             .padding(.horizontal, 10)
             .background(.regularMaterial, ignoresSafeAreaEdges: .bottom)
+            .navigationBarBackButtonHidden(true)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        HStack {
+                            Image(systemName: "chevron.left")
+                            Text("Back")
+                        }
+                    }
+                }
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     HStack {
                         // MARK: Save Photo
