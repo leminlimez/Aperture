@@ -127,7 +127,7 @@ struct EditorView: View {
                                     if boxStartPos == nil {
                                         boxStartPos = drag.location
                                     }
-                                    let end = drag.location
+                                    let end = getCorrectedPoint(drag.location)
                                     let rectangle: CGRect = .init(origin: end,
                                                                   size: .init(width: boxStartPos!.x - end.x,
                                                                               height: boxStartPos!.y - end.y))
@@ -140,7 +140,7 @@ struct EditorView: View {
                                         selectionPath!.move(to: drag.startLocation)
                                         drawingLasso = true
                                     }
-                                    selectionPath!.addLine(to: drag.location)
+                                    selectionPath!.addLine(to: getCorrectedPoint(drag.location))
                                 }
                             }
                             .onEnded { drag in
@@ -333,13 +333,14 @@ struct EditorView: View {
         imageFadeAmount = amt
     }
     
-    func getCroppingRect() -> CGRect? {
-        let scale = image.size.width / imageSize.width
-        guard let currentBox = selectionPath else { return nil }
-        let box = currentBox.boundingRect
-        return CGRect(
-            x: (box.minX - imagePos.x) * scale, y: (box.minY - imagePos.y) * scale,
-            width: box.width * scale, height: box.height * scale
-        )
+    func getCorrectedPoint(_ point: CGPoint) -> CGPoint {
+        var newPoint = point
+        let maxY = imagePos.y + imageSize.height
+        if newPoint.y > maxY {
+            newPoint.y = maxY
+        } else if newPoint.y < imagePos.y {
+            newPoint.y = imagePos.y
+        }
+        return newPoint
     }
 }
