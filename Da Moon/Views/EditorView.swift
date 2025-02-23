@@ -22,6 +22,7 @@ struct EditorView: View {
     @State var image: UIImage
     @State var subject: UIImage?
     @State var upscaledImage: UIImage?
+    @State var sentImage: UIImage?
     
     @State private var currentTool: Tool = .none
     @State private var showResultsView: Bool = false
@@ -29,6 +30,10 @@ struct EditorView: View {
     // Bounding Box
     @State private var boxStartPos: CGPoint? = nil
     @State private var currentBox: Path? = nil
+    
+    // Image View Bounds
+    @State private var imageSize: CGSize = CGSizeZero
+    @State private var imagePos: CGPoint = CGPointZero
     
     // Gloss Properties
     @State private var playingGlossAnim: Bool = false
@@ -44,6 +49,20 @@ struct EditorView: View {
                     .transition(.opacity)
                     .animation(.easeOut, value: imageFadeAmount)
                     .shine(playingGlossAnim)
+                    .background {
+                        GeometryReader { geometry in
+                            Color.clear
+                                .onChange(of: geometry.size, initial: true) {
+                                    imageSize = geometry.size
+                                }
+                                .onChange(of: geometry.frame(in: .local).minX, initial: true) {
+                                    imagePos = CGPoint(x: geometry.frame(in: .local).minX, y: geometry.frame(in: .local).minY)
+                                }
+                                .onChange(of: geometry.frame(in: .local).minY, initial: true) {
+                                    imagePos = CGPoint(x: geometry.frame(in: .local).minX, y: geometry.frame(in: .local).minY)
+                                }
+                        }
+                    }
                     .overlay(content: {
                         ZStack {
                             // MARK: Subject View
@@ -188,8 +207,8 @@ struct EditorView: View {
             .padding(.top, 18)
             .background(.regularMaterial, ignoresSafeAreaEdges: .bottom)
             .navigationDestination(isPresented: $showResultsView, destination: {
-                if let resultingImage = upscaledImage {
-                    ResultsView(originalImage: image, upscaledImage: resultingImage)
+                if let resultingImage = upscaledImage, let sentImage = sentImage {
+                    ResultsView(originalImage: sentImage, upscaledImage: resultingImage)
                 }
             })
             .toolbar {
@@ -199,7 +218,13 @@ struct EditorView: View {
                         if !playingGlossAnim {
                             startGloss()
                             Task {
-                                self.upscaledImage = await finalizeAndUpscale(image: image)
+                                var toSend: UIImage = image
+                                if let subject = subject { toSend = subject } // subject only
+                                // crop the sending image to the bounding box
+                                if let bounding = getCroppingRect(), let cropped = toSend.cropImage(to: bounding) { toSend = cropped }
+                                sentImage = toSend
+                                
+                                self.upscaledImage = await finalizeAndUpscale(image: toSend)
                                 if self.upscaledImage == nil {
                                     playingGlossAnim = false
                                     UIApplication.shared.alert(title: "Failed to upscale image.", body: "An unknown error occurred.")
@@ -266,5 +291,15 @@ struct EditorView: View {
     
     func fadeImage(to amt: Double) {
         imageFadeAmount = amt
+    }
+    
+    func getCroppingRect() -> CGRect? {
+        let scale = image.size.width / imageSize.width
+        guard let currentBox = currentBox else { return nil }
+        let box = currentBox.boundingRect
+        return CGRect(
+            x: (box.minX - imagePos.x) * scale, y: (box.minY - imagePos.y) * scale,
+            width: box.width * scale, height: box.height * scale
+        )
     }
 }
