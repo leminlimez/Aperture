@@ -87,7 +87,26 @@ func finalizeAndUpscale(image: UIImage) async -> UIImage? {
     }
 }
 
+func createMultipartBody(with imageData: Data, boundary: String) -> Data {
+    var body = Data()
+    let lineBreak = "\r\n"
+    // Append the image data as a form field, "file" is the field name
+    body.append("--\(boundary)\(lineBreak)".data(using: .utf8)!)
+    body.append("Content-Disposition: form-data; name=\"file\"; filename=\"image.jpg\"\(lineBreak)".data(using: .utf8)!)
+    body.append("Content-Type: image/jpeg\(lineBreak + lineBreak)".data(using: .utf8)!)
+    body.append(imageData)
+    body.append("\(lineBreak)".data(using: .utf8)!)
+    body.append("--\(boundary)--\(lineBreak)".data(using: .utf8)!)
+    return body
+}
+
+
 func finalizeAndUpscaleServer(image: UIImage) async -> UIImage? {
+    guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+        print("Failed to convert image to JPEG data.")
+        return nil
+    }
+    
     // Convert the image to a base64 string.
     guard let base64Image = image.jpegBase64() else {
         print("Failed to convert image to base64.")
@@ -103,7 +122,7 @@ func finalizeAndUpscaleServer(image: UIImage) async -> UIImage? {
     }
     
     // Replace the string below with your actual server URL.
-    guard let url = URL(string: "https://128.210.107.131:5000/run_inference:") else {
+    guard let url = URL(string: "https://2bb3-174-194-4-66.ngrok-free.app/run_inference") else {
         print("Invalid URL.")
         return nil
     }
@@ -112,27 +131,34 @@ func finalizeAndUpscaleServer(image: UIImage) async -> UIImage? {
         print("API key not found in environment variables.")
         return nil
     }
+    print(apiKey)
     
     // Create the POST request.
     var request = URLRequest(url: url)
-    request.timeoutInterval = 10
+    request.timeoutInterval = 120
     request.httpMethod = "POST"
-    request.setValue("\(apiKey)", forHTTPHeaderField: "X-API_KEY")
-    request.httpBody = jsonData
-    print("Sending request")
+    let boundary = "Boundary-\(UUID().uuidString)"
+    request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+    let body = createMultipartBody(with: imageData, boundary: boundary)
+    request.httpBody = body
+        
+    print("Sending request with binary image data, size: \(body.count) bytes")
     do {
-        // Send the request and await the response.
         let (data, response) = try await URLSession.shared.data(for: request)
         
-        // Optionally, check the response status code.
         if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
             print("Server returned status code: \(httpResponse.statusCode)")
+            if let errorMessage = String(data: data, encoding: .utf8) {
+                print("Error message from server: \(errorMessage)")
+            } else {
+                print("No error message available.")
+            }
             return nil
         }
         
         // Parse the JSON response.
         if let jsonResponse = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let upscaledBase64 = jsonResponse["upscaledImage"] as? String,
+           let upscaledBase64 = jsonResponse["deblurred_img"] as? String,
            let upscaledImage = UIImage(base64: upscaledBase64) {
             return upscaledImage
         } else {
