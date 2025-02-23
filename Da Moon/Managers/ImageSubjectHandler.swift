@@ -135,7 +135,7 @@ func finalizeAndUpscaleServer(image: UIImage) async -> UIImage? {
     
     // Create the POST request.
     var request = URLRequest(url: url)
-    request.timeoutInterval = 120
+    request.timeoutInterval = 20
     request.httpMethod = "POST"
     let boundary = "Boundary-\(UUID().uuidString)"
     request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
