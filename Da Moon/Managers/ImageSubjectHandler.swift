@@ -17,21 +17,66 @@ import VisionKit
     interaction.analysis = analysis
     return try? await interaction.image(for: interaction.subjects)
 }
+//
+//func maskSubject(from image: UIImage) async throws -> UIImage? {
+//    guard let cgImage = image.cgImage else { throw MaskingError.cgImage }
+//    let request = VNGenerateForegroundInstanceMaskRequest()
+//    let handler = VNImageRequestHandler(cgImage: cgImage)
+//    try handler.perform([request])
+//    guard let result = request.results?.first else { throw MaskingError.noSubjects }
+//    let output = try result.generateMaskedImage(
+//      ofInstances: result.allInstances,
+//      from: handler,
+//      croppedToInstancesExtent: true)
+//    
+//    // convert the final image to a UIImage
+//    return UIImage(pixelBuffer: output, scale: image.scale, orientation: image.imageOrientation)
+//}
 
 func maskSubject(from image: UIImage) async throws -> UIImage? {
+    // Ensure we have a valid CGImage.
     guard let cgImage = image.cgImage else { throw MaskingError.cgImage }
+    
+    // Create and perform the mask request.
     let request = VNGenerateForegroundInstanceMaskRequest()
     let handler = VNImageRequestHandler(cgImage: cgImage)
     try handler.perform([request])
-    guard let result = request.results?.first else { throw MaskingError.noSubjects }
-    let output = try result.generateMaskedImage(
-      ofInstances: result.allInstances,
-      from: handler,
-      croppedToInstancesExtent: false)
     
-    // convert the final image to a UIImage
+    // Get the result from the request.
+    guard let result = request.results?.first as? VNForegroundInstanceMaskObservation else {
+        throw MaskingError.noSubjects
+    }
+    
+    // Get the indices of all detected instances.
+    let instanceIndices = result.allInstances
+    guard !instanceIndices.isEmpty else { throw MaskingError.noSubjects }
+    
+    // Iterate over the instance indices to select the one with the largest area.
+    var primaryIndex: Int = instanceIndices.first!
+    var maxArea: CGFloat = 0.0
+    
+    for index in instanceIndices {
+        let box = result.boundingBox(for: index)
+        let area = box.width * box.height
+        if area > maxArea {
+            primaryIndex = index
+            maxArea = area
+        }
+    }
+    
+    // Create an IndexSet with only the primary instance.
+    let primaryInstanceIndexSet = IndexSet(integer: primaryIndex)
+    
+    // Generate the masked image using only the primary instance and crop it.
+    let output = try result.generateMaskedImage(
+        ofInstances: primaryInstanceIndexSet,
+        from: handler,
+        croppedToInstancesExtent: true)
+    
+    // Convert the pixel buffer output to a UIImage.
     return UIImage(pixelBuffer: output, scale: image.scale, orientation: image.imageOrientation)
 }
+
 
 func finalizeAndUpscale(image: UIImage) async -> UIImage? {
     print("Upscale button tapped.")
