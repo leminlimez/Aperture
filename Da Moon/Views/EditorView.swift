@@ -257,8 +257,13 @@ struct EditorView: View {
                                 if let subject = subject { toSend = subject } // subject only
                                 // crop the sending image to the bounding box
                                 if let path = selectionPath, let cropped = toSend.cropImage(path: path, in: imageSize) { toSend = cropped }
-                                // fill the background of transparent images with white
-                                if let filled = toSend.fillTransparency(with: UIColor.white.cgColor) { toSend = filled }
+                                // fill the background of transparent images with white or the darkened background
+                                let darkenBG = UserDefaults.standard.bool(forKey: "useDarkenedBG")
+                                if darkenBG, let filled = toSend.overlayDarkened(over: image) {
+                                    toSend = filled
+                                } else if !darkenBG, let filled = toSend.fillTransparency(with: UIColor.white.cgColor) {
+                                    toSend = filled
+                                }
                                 sentImage = toSend
                                 
 //                                self.upscaledImage = await finalizeAndUpscale(image: toSend)

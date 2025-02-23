@@ -49,6 +49,33 @@ extension UIImage {
         return finalImage
     }
     
+    func overlayDarkened(over image: UIImage) -> UIImage? {
+        var finalImage: UIImage? = nil
+        
+        // Create a UIImage context
+        UIGraphicsBeginImageContextWithOptions(size, false, 0)
+        
+        if let context = UIGraphicsGetCurrentContext() {
+            let rect = CGRect(origin: .zero, size: size)
+            // Draw the background image
+            image.draw(in: rect)
+            
+            // Add the alpha
+            let darknessAmt = UserDefaults.standard.double(forKey: "darknessValue")
+            UIColor(white: 0, alpha: 1.0 - darknessAmt).setFill()
+            context.fill(rect)
+            
+            // Draw the main image
+            self.draw(in: rect)
+            
+            // Finalize
+            finalImage = UIGraphicsGetImageFromCurrentImageContext()
+        }
+        
+        UIGraphicsEndImageContext()
+        return finalImage
+    }
+    
     func fillTransparency(with color: CGColor) -> UIImage? {
         var finalImage: UIImage? = nil
         

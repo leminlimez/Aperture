@@ -84,6 +84,15 @@ struct ContentView: View {
             .onRotate { newOrientation in
                 orientation = newOrientation
             }
+            .onAppear {
+                // Load default settings
+                if UserDefaults.standard.value(forKey: "useDarkenedBG") == nil {
+                    UserDefaults.standard.set(true, forKey: "useDarkenedBG")
+                }
+                if UserDefaults.standard.value(forKey: "darknessValue") == nil {
+                    UserDefaults.standard.set(0.3, forKey: "darknessValue")
+                }
+            }
         }
         .navigationTransition(.fade(.cross))
     }
