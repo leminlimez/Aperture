@@ -54,7 +54,7 @@ struct ContentView: View {
                 Text("Designed for Boilermake XII (2025)")
                     .font(.footnote)
             }
-            .photosPicker(isPresented: $showPhotoLibrary, selection: $chosenPhotoItem)
+            .photosPicker(isPresented: $showPhotoLibrary, selection: $chosenPhotoItem, matching: .images)
             .onChange(of: chosenPhotoItem, initial: false) {
                 if let chosenPhoto = chosenPhotoItem {
                     Task {
