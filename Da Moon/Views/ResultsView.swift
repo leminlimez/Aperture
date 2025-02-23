@@ -64,39 +64,40 @@ struct ResultsView: View {
                                     .compositingGroup()
                             }
                         }
-                    
-                    ZStack {
-                        Rectangle()
-                            .frame(maxWidth: 4, maxHeight: .infinity)
-                            .foregroundStyle(.white)
-                        Circle()
-                            .frame(width: DRAGGABLE_CIRCLE_SIZE, height: DRAGGABLE_CIRCLE_SIZE)
-                            .foregroundStyle(.white)
-                        Image(systemName: "arrow.left.arrow.right")
-                            .resizable()
-                            .scaledToFit()
-                            .foregroundStyle(.black)
-                            .frame(width: DRAGGABLE_CIRCLE_SIZE - 10, height: DRAGGABLE_CIRCLE_SIZE - 10)
-                    }
-                    .shadow(radius: 10)
-                    .offset(x: currentMode == .SideBySide ? (-imageWidth / 2) + (imageWidth * sideAmount) : imageWidth / 2)
-                    .opacity(currentMode == .SideBySide ? 1.0 : 0.0)
-                    .transition(.slide.combined(with: .opacity))
-                    .animation(.easeOut, value: currentMode == .SideBySide)
-                    .simultaneousGesture(
-                        DragGesture(minimumDistance: 0.0)
-                            .onChanged { drag in
-                                guard currentMode == .SideBySide else { return }
-                                let pos = drag.location.x + imageWidth / 2 - DRAGGABLE_CIRCLE_SIZE / 2
-                                if pos < imageMinX {
-                                    sideAmount = 0.0
-                                } else if pos > imageMinX + imageWidth {
-                                    sideAmount = 1.0
-                                } else {
-                                    sideAmount = (pos - imageMinX) / imageWidth
-                                }
+                        .overlay {
+                            ZStack {
+                                Rectangle()
+                                    .frame(maxWidth: 4, maxHeight: .infinity)
+                                    .foregroundStyle(.white)
+                                Circle()
+                                    .frame(width: DRAGGABLE_CIRCLE_SIZE, height: DRAGGABLE_CIRCLE_SIZE)
+                                    .foregroundStyle(.white)
+                                Image(systemName: "arrow.left.arrow.right")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .foregroundStyle(.black)
+                                    .frame(width: DRAGGABLE_CIRCLE_SIZE - 10, height: DRAGGABLE_CIRCLE_SIZE - 10)
                             }
-                    )
+                            .offset(x: currentMode == .SideBySide ? (-imageWidth / 2) + (imageWidth * sideAmount) : imageWidth / 2)
+                            .shadow(radius: 10)
+                            .opacity(currentMode == .SideBySide ? 1.0 : 0.0)
+                            .transition(.slide.combined(with: .opacity))
+                            .animation(.easeOut, value: currentMode == .SideBySide)
+                            .simultaneousGesture(
+                                DragGesture(minimumDistance: 0.0)
+                                    .onChanged { drag in
+                                        guard currentMode == .SideBySide else { return }
+                                        let pos = drag.location.x + imageWidth / 2 - DRAGGABLE_CIRCLE_SIZE / 2
+                                        if pos < imageMinX {
+                                            sideAmount = 0.0
+                                        } else if pos > imageMinX + imageWidth {
+                                            sideAmount = 1.0
+                                        } else {
+                                            sideAmount = (pos - imageMinX) / imageWidth
+                                        }
+                                    }
+                            )
+                        }
                 }
                 
                 .padding(.horizontal, 10)
