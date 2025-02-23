@@ -11,7 +11,7 @@ import CoreML
 let BOTTOM_BAR_PADDING: CGFloat = 12
 
 enum Tool {
-    case none, box
+    case None, Box, Lasso
 }
 
 struct EditorView: View {
@@ -24,12 +24,15 @@ struct EditorView: View {
     @State var upscaledImage: UIImage?
     @State var sentImage: UIImage?
     
-    @State private var currentTool: Tool = .none
+    @State private var currentTool: Tool = .None
     @State private var showResultsView: Bool = false
     
     // Bounding Box
     @State private var boxStartPos: CGPoint? = nil
-    @State private var currentBox: Path? = nil
+    @State private var selectionPath: Path? = nil
+    
+    // Lasso Tool
+    @State private var drawingLasso: Bool = false
     
     // Image View Bounds
     @State private var imageSize: CGSize = CGSizeZero
@@ -90,22 +93,22 @@ struct EditorView: View {
                                 }
                             }
                             
-                            // MARK: Bounding Box
-                            if let currentBox = currentBox {
-                                // Darkening for bounding box
+                            // MARK: Bounding Box + Lasso
+                            if let selectionPath = selectionPath {
+                                // Darkening for bounding box/lasso
                                 Color.black
                                     .opacity(0.7)
                                     .overlay {
-                                        currentBox
+                                        selectionPath
                                             .fill(.black)
                                             .blendMode(.destinationOut)
                                     }
                                     .compositingGroup()
-                                currentBox
+                                selectionPath
                                     .strokedPath(.init(
-                                        lineWidth: boxStartPos == nil ? 3 : 2,
+                                        lineWidth: (!drawingLasso && boxStartPos == nil) ? 2 : 3,
                                         lineJoin: .round,
-                                        dash: boxStartPos == nil ? [] : [5]
+                                        dash: (!drawingLasso && boxStartPos == nil) ? [] : [5]
                                     ))
                                     .foregroundStyle(.gray.opacity(0.8))
                             }
@@ -116,36 +119,61 @@ struct EditorView: View {
                     .simultaneousGesture(
                         DragGesture(minimumDistance: 0)
                             .onChanged { drag in
-                                if currentTool != .box {
+                                if currentTool == .None {
                                     return
                                 }
-                                if boxStartPos == nil {
-                                    boxStartPos = drag.location
-                                }
-                                let end = drag.location
-                                let rectangle: CGRect = .init(origin: end,
-                                                              size: .init(width: boxStartPos!.x - end.x,
-                                                                          height: boxStartPos!.y - end.y))
-                                currentBox = .init { path in
-                                    path.addRect(rectangle)
+                                if currentTool == .Box {
+                                    if boxStartPos == nil {
+                                        boxStartPos = drag.location
+                                    }
+                                    let end = drag.location
+                                    let rectangle: CGRect = .init(origin: end,
+                                                                  size: .init(width: boxStartPos!.x - end.x,
+                                                                              height: boxStartPos!.y - end.y))
+                                    selectionPath = .init { path in
+                                        path.addRect(rectangle)
+                                    }
+                                } else if currentTool == .Lasso {
+                                    if !drawingLasso {
+                                        selectionPath = Path()
+                                        selectionPath!.move(to: drag.startLocation)
+                                        drawingLasso = true
+                                    }
+                                    selectionPath!.addLine(to: drag.location)
                                 }
                             }
-                            .onEnded { _ in
+                            .onEnded { drag in
+                                if drawingLasso && selectionPath != nil {
+                                    selectionPath!.addLine(to: drag.location)
+                                    selectionPath!.closeSubpath()
+                                    drawingLasso = false
+                                }
                                 boxStartPos = nil
-                                currentTool = .none
+                                currentTool = .None
                             }
                     )
             }
             // MARK: Bottom Bar
             HStack {
-                BottomButton(icon: "lasso", action: {
-                    // TODO: Lasso Tool
+                BottomButton(icon: "trash", action: {
+                    // MARK: Remove Selection
+                    guard boxStartPos == nil && !drawingLasso else { return } // do not clear if they are in the middle of drawing
+                    selectionPath = nil
+                    currentTool = .None
                 })
-                BottomButton(icon: "rectangle.dashed", pressed: { return currentTool == .box }, action: {
+                .foregroundStyle(.red)
+                .disabled(selectionPath == nil)
+                .opacity(selectionPath == nil ? 0.4 : 1.0)
+                BottomButton(icon: "lasso", pressed: { return currentTool == .Lasso }, action: {
+                    // MARK: Lasso Tool
+                    guard boxStartPos == nil else { return } // do not change tool if currently drawing box
+                    currentTool = currentTool == .Lasso ? .None : .Lasso
+                })
+                BottomButton(icon: "rectangle.dashed", pressed: { return currentTool == .Box }, action: {
                     // MARK: Select bounding box tool
+                    guard !drawingLasso else { return } // do not change tool if currently drawing lasso
                     boxStartPos = nil
-                    currentBox = nil
-                    currentTool = currentTool == .box ? .none : .box
+                    currentTool = currentTool == .Box ? .None : .Box
                 })
                 BottomButton(icon: "person.and.background.dotted", pressed: { return subject != nil}, action: {
                     // MARK: Select Subject
@@ -221,7 +249,9 @@ struct EditorView: View {
                                 var toSend: UIImage = image
                                 if let subject = subject { toSend = subject } // subject only
                                 // crop the sending image to the bounding box
-                                if let bounding = getCroppingRect(), let cropped = toSend.cropImage(to: bounding) { toSend = cropped }
+                                if let path = selectionPath, let cropped = toSend.cropImage(path: path, in: imageSize) { toSend = cropped }
+                                // fill the background of transparent images with white
+                                if let filled = toSend.fillTransparency(with: UIColor.white.cgColor) { toSend = filled }
                                 sentImage = toSend
                                 
                                 self.upscaledImage = await finalizeAndUpscale(image: toSend)
@@ -295,7 +325,7 @@ struct EditorView: View {
     
     func getCroppingRect() -> CGRect? {
         let scale = image.size.width / imageSize.width
-        guard let currentBox = currentBox else { return nil }
+        guard let currentBox = selectionPath else { return nil }
         let box = currentBox.boundingRect
         return CGRect(
             x: (box.minX - imagePos.x) * scale, y: (box.minY - imagePos.y) * scale,

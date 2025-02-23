@@ -26,6 +26,51 @@ extension UIImage {
         return UIImage(cgImage: croppedCGImage, scale: scale, orientation: imageOrientation)
     }
     
+    func cropImage(path: Path, in size: CGSize) -> UIImage? {
+        var finalImage: UIImage? = nil
+        
+        // Create a UIImage context
+        UIGraphicsBeginImageContextWithOptions(size, false, 0)
+        
+        if let context = UIGraphicsGetCurrentContext() {
+            // Draw the path as a mask
+            context.addPath(path.cgPath)
+            context.closePath()
+            context.clip()
+            
+            // Draw the image
+            self.draw(in: CGRect(origin: .zero, size: size))
+            
+            // Get the cropped image
+            finalImage = UIGraphicsGetImageFromCurrentImageContext()
+        }
+        
+        UIGraphicsEndImageContext()
+        return finalImage
+    }
+    
+    func fillTransparency(with color: CGColor) -> UIImage? {
+        var finalImage: UIImage? = nil
+        
+        // Create a UIImage context
+        UIGraphicsBeginImageContextWithOptions(size, false, 0)
+        
+        if let context = UIGraphicsGetCurrentContext() {
+            // Fill with the color
+            context.setFillColor(color)
+            context.fill([CGRect(origin: .zero, size: size)])
+            
+            // Draw the image
+            self.draw(in: CGRect(origin: .zero, size: size))
+            
+            // Get the cropped image
+            finalImage = UIGraphicsGetImageFromCurrentImageContext()
+        }
+        
+        UIGraphicsEndImageContext()
+        return finalImage
+    }
+    
     // MARK: CVPixelBuffer Operations
     /// Converts UIImage to a CVPixelBuffer.
     func toCVPixelBuffer() -> CVPixelBuffer? {

@@ -50,6 +50,8 @@ struct ContentView: View {
                     Spacer()
                 }
                 Spacer()
+                Text("Designed for Boilermake XII (2025)")
+                    .font(.footnote)
             }
             .photosPicker(isPresented: $showPhotoLibrary, selection: $chosenPhotoItem)
             .onChange(of: chosenPhotoItem, initial: false) {
