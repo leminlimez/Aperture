@@ -27,11 +27,10 @@ extension UIImage {
     }
     
     func cropImage(path: Path, in size: CGSize) -> UIImage? {
-        guard let cg = cgImage else { return nil }
         var finalImage: UIImage? = nil
         
         // Create a UIImage context
-        UIGraphicsBeginImageContextWithOptions(size, false, 0)
+        UIGraphicsBeginImageContextWithOptions(size, true, 0)
         
         if let context = UIGraphicsGetCurrentContext() {
             // Draw the path as a mask
