@@ -17,6 +17,7 @@ struct ContentView: View {
     @State private var chosenPhotoItem: PhotosPickerItem? = nil
     
     // View Toggles
+    @State private var showSettings: Bool = false
     @State private var showCamera: Bool = false
     @State private var showPhotoLibrary: Bool = false
     @State private var showEditorView: Bool = false
@@ -34,8 +35,8 @@ struct ContentView: View {
                     .scaledToFit()
                     .lineLimit(1)
                     .padding(.top, 30)
-                    .padding(.bottom, (isLandscape() && !isipad) ? 50 : 75)
-                    .padding(.horizontal, 45)
+                    .padding(.bottom, (isLandscape() && !isipad) ? 50 : 65)
+                    .padding(.horizontal, 40)
                 if isipad {
                     Spacer()
                 }
@@ -63,6 +64,9 @@ struct ContentView: View {
                         chosenPhotoItem = nil
                     }
                 }
+            }
+            .sheet(isPresented: $showSettings) {
+                SettingsView()
             }
             .sheet(isPresented: $showCamera) {
                 MainCameraView(image: $selectedImage)
@@ -92,6 +96,28 @@ struct ContentView: View {
             MenuButton(icon: "camera", title: "Capture Photo", action: {
                 showCamera.toggle()
             })
+            // Settings Button
+            Button(action: {
+                showSettings.toggle()
+            }) {
+                VStack {
+                    if isipad || isLandscape() {
+                        Image(systemName: "gear")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxHeight: 50)
+                            .padding(5)
+                    }
+                    Text("Settings")
+                }
+                .frame(width: BUTTON_SIZE, height: (isipad || isLandscape()) ? BUTTON_SIZE : nil)
+                .padding(10)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.gray)
+            .aspectRatio((isipad || isLandscape()) ? 1.0 : nil, contentMode: .fit)
+            .shadow(color: .gray, radius: 13)
+            .padding((isipad || isLandscape()) ? 10 : 20)
         }
     }
     
