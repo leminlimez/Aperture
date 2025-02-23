@@ -261,9 +261,9 @@ struct EditorView: View {
                                 if let filled = toSend.fillTransparency(with: UIColor.white.cgColor) { toSend = filled }
                                 sentImage = toSend
                                 
-                                self.upscaledImage = await finalizeAndUpscale(image: toSend)
+//                                self.upscaledImage = await finalizeAndUpscale(image: toSend)
 //                                self.upscaledImage = await finalizeAndUpscaleServer(image: toSend)
-//                                self.upscaledImage = await combinedUpscale(image: toSend)
+                                self.upscaledImage = await combinedUpscale(image: toSend)
                                 if self.upscaledImage == nil {
                                     playingGlossAnim = false
                                     UIApplication.shared.alert(title: "Failed to upscale image.", body: "An unknown error occurred.")
