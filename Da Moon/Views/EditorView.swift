@@ -156,13 +156,12 @@ struct EditorView: View {
             }
             // MARK: Bottom Bar
             HStack {
-                BottomButton(icon: "trash", action: {
+                BottomButton(icon: "trash", color: .red, action: {
                     // MARK: Remove Selection
                     guard boxStartPos == nil && !drawingLasso else { return } // do not clear if they are in the middle of drawing
                     selectionPath = nil
                     currentTool = .None
                 })
-                .foregroundStyle(.red)
                 .disabled(selectionPath == nil)
                 .opacity(selectionPath == nil ? 0.4 : 1.0)
                 BottomButton(icon: "lasso", pressed: { return currentTool == .Lasso }, action: {
@@ -289,6 +288,7 @@ struct EditorView: View {
     
     struct BottomButton: View {
         var icon: String
+        var color: Color = .blue
         var pressed: () -> Bool = { return false }
         var action: () -> Void
         
@@ -298,6 +298,7 @@ struct EditorView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
             }
+            .buttonStyle(ToolbarItemStyle(color: color))
             .padding(8)
             .background {
                 if pressed() {

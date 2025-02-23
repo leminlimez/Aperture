@@ -122,10 +122,8 @@ struct ContentView: View {
                 .frame(width: BUTTON_SIZE, height: (isipad || isLandscape()) ? BUTTON_SIZE : nil)
                 .padding(10)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.gray)
+            .buttonStyle(MainMenuButtonStyle(color: .gray))
             .aspectRatio((isipad || isLandscape()) ? 1.0 : nil, contentMode: .fit)
-            .shadow(color: .gray, radius: 13)
             .padding((isipad || isLandscape()) ? 10 : 20)
         }
     }
@@ -148,9 +146,8 @@ struct ContentView: View {
                 .frame(width: BUTTON_SIZE, height: BUTTON_SIZE)
                 .padding(10)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(MainMenuButtonStyle(color: .blue))
             .aspectRatio(1.0, contentMode: .fit)
-            .shadow(color: .blue, radius: 13)
             .padding(10)
         }
     }
