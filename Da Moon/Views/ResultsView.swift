@@ -126,10 +126,23 @@ struct ResultsView: View {
             .background(.regularMaterial, ignoresSafeAreaEdges: .bottom)
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
-                    // MARK: Share Upscaled Photo
-                    let upscaled = Image(uiImage: upscaledImage)
-                    ShareLink(item: upscaled, preview: SharePreview("Upscaled Result", image: upscaled)) {
-                        Image(systemName: "square.and.arrow.up")
+                    HStack {
+                        // MARK: Save Photo
+                        Button(action: {
+                            UIImageWriteToSavedPhotosAlbum(upscaledImage, nil, nil, nil)
+                            UIApplication.shared.alert(title: "Photo Saved", body: "The upscaled image has been saved to your Photo Library.")
+                        }) {
+                            Image(systemName: "square.and.arrow.down")
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                        }
+                        // MARK: Share Upscaled Photo
+                        let upscaled = Image(uiImage: upscaledImage)
+                        ShareLink(item: upscaled, preview: SharePreview("Upscaled Result", image: upscaled)) {
+                            Image(systemName: "square.and.arrow.up")
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                        }
                     }
                 }
             }
