@@ -15,6 +15,8 @@ enum OverlayMode: String, CaseIterable {
 let DRAGGABLE_CIRCLE_SIZE: CGFloat = 30
 
 struct ResultsView: View {
+    @Environment(\.dismiss) var dismiss
+    
     // Images
     var originalImage: UIImage
     var upscaledImage: UIImage
@@ -24,8 +26,12 @@ struct ResultsView: View {
     @State private var opacity: Double = 1.0
     @State private var sideAmount: Double = 0.5
     
-    @State private var imageWidth: CGFloat = 0.0
+    @State private var imageSize: CGSize = .zero
     @State private var imageMinX: CGFloat = 0.0
+    @State private var imageMinY: CGFloat = 0.0
+    
+    // Animations
+    @State private var playSaveAnimation: Bool = false
     
     var body: some View {
         VStack {
@@ -43,60 +49,70 @@ struct ResultsView: View {
                                     .opacity(currentMode == .Overlay ? opacity : 1.0)
                                     .transition(.opacity)
                                     .animation(.easeOut, value: currentMode == .SideBySide)
-                                    .onChange(of: geometry.size.width, initial: true) {
-                                        imageWidth = geometry.size.width
+                                    .onChange(of: geometry.size, initial: true) {
+                                        imageSize = geometry.size
                                     }
                                     .onChange(of: geometry.frame(in: .local).minX, initial: true) {
                                         imageMinX = geometry.frame(in: .local).minX
                                     }
+                                    .onChange(of: geometry.frame(in: .global).minY, initial: true) {
+                                        imageMinY = geometry.frame(in: .global).minY
+                                    }
                                     .overlay {
-                                        let rectWidth = currentMode == .SideBySide ? imageWidth * sideAmount : imageWidth
+                                        let rectWidth = currentMode == .SideBySide ? imageSize.width * sideAmount : imageSize.width
                                         Rectangle()
                                             .fill(.black)
                                             .blendMode(.destinationOut)
                                             .opacity(currentMode == .SideBySide ? 1.0 : 0.0)
                                             .frame(width: rectWidth)
                                             .frame(maxHeight: .infinity)
-                                            .offset(x: (-imageWidth / 2) + (rectWidth / 2))
+                                            .offset(x: (-imageSize.width / 2) + (rectWidth / 2))
                                             .transition(.slide.combined(with: .opacity))
                                             .animation(.easeOut, value: currentMode == .SideBySide)
                                     }
                                     .compositingGroup()
                             }
                         }
-                    
-                    ZStack {
-                        Rectangle()
-                            .frame(maxWidth: 4, maxHeight: .infinity)
-                            .foregroundStyle(.white)
-                        Circle()
-                            .frame(width: DRAGGABLE_CIRCLE_SIZE, height: DRAGGABLE_CIRCLE_SIZE)
-                            .foregroundStyle(.white)
-                        Image(systemName: "arrow.left.arrow.right")
-                            .resizable()
-                            .scaledToFit()
-                            .foregroundStyle(.black)
-                            .frame(width: DRAGGABLE_CIRCLE_SIZE - 10, height: DRAGGABLE_CIRCLE_SIZE - 10)
-                    }
-                    .shadow(radius: 10)
-                    .offset(x: currentMode == .SideBySide ? (-imageWidth / 2) + (imageWidth * sideAmount) : imageWidth / 2)
-                    .opacity(currentMode == .SideBySide ? 1.0 : 0.0)
-                    .transition(.slide.combined(with: .opacity))
-                    .animation(.easeOut, value: currentMode == .SideBySide)
-                    .simultaneousGesture(
-                        DragGesture(minimumDistance: 0.0)
-                            .onChanged { drag in
-                                guard currentMode == .SideBySide else { return }
-                                let pos = drag.location.x + imageWidth / 2 - DRAGGABLE_CIRCLE_SIZE / 2
-                                if pos < imageMinX {
-                                    sideAmount = 0.0
-                                } else if pos > imageMinX + imageWidth {
-                                    sideAmount = 1.0
-                                } else {
-                                    sideAmount = (pos - imageMinX) / imageWidth
-                                }
+                        .overlay {
+                            ZStack {
+                                Rectangle()
+                                    .frame(maxWidth: 4, maxHeight: .infinity)
+                                    .foregroundStyle(.white)
+                                Circle()
+                                    .frame(width: DRAGGABLE_CIRCLE_SIZE, height: DRAGGABLE_CIRCLE_SIZE)
+                                    .foregroundStyle(.white)
+                                Image(systemName: "arrow.left.arrow.right")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .foregroundStyle(.black)
+                                    .frame(width: DRAGGABLE_CIRCLE_SIZE - 10, height: DRAGGABLE_CIRCLE_SIZE - 10)
                             }
-                    )
+                            .offset(x: currentMode == .SideBySide ? (-imageSize.width / 2) + (imageSize.width * sideAmount) : imageSize.width / 2)
+                            .shadow(radius: 10)
+                            .opacity(currentMode == .SideBySide ? 1.0 : 0.0)
+                            .transition(.slide.combined(with: .opacity))
+                            .animation(.easeOut, value: currentMode == .SideBySide)
+                            .simultaneousGesture(
+                                DragGesture(minimumDistance: 0.0)
+                                    .onChanged { drag in
+                                        guard currentMode == .SideBySide else { return }
+                                        let pos = drag.location.x + imageSize.width / 2 - DRAGGABLE_CIRCLE_SIZE / 2
+                                        if pos < imageMinX {
+                                            sideAmount = 0.0
+                                        } else if pos > imageMinX + imageSize.width {
+                                            sideAmount = 1.0
+                                        } else {
+                                            sideAmount = (pos - imageMinX) / imageSize.width
+                                        }
+                                    }
+                            )
+                        }
+                    
+                    // MARK: Animation-Specific Image
+                    Image(uiImage: upscaledImage)
+                        .resizable()
+                        .scaledToFit()
+                        .saveAnimation(playSaveAnimation, startOffset: imageMinY, imgSize: imageSize)
                 }
                 
                 .padding(.horizontal, 10)
@@ -123,12 +139,41 @@ struct ResultsView: View {
             .padding(.top, 4)
             .padding(.horizontal, 10)
             .background(.regularMaterial, ignoresSafeAreaEdges: .bottom)
+            .navigationBarBackButtonHidden(true)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        HStack {
+                            Image(systemName: "chevron.left")
+                            Text("Back")
+                        }
+                    }
+                }
                 ToolbarItemGroup(placement: .topBarTrailing) {
-                    // MARK: Share Upscaled Photo
-                    let upscaled = Image(uiImage: upscaledImage)
-                    ShareLink(item: upscaled, preview: SharePreview("Upscaled Result", image: upscaled)) {
-                        Image(systemName: "square.and.arrow.up")
+                    HStack {
+                        // MARK: Save Photo
+                        Button(action: {
+                            UIImageWriteToSavedPhotosAlbum(upscaledImage, nil, nil, nil)
+                            playSaveAnimation = true
+                            DispatchQueue.main.asyncAfter(deadline: .now() + SAVE_ANIM_DURATION) {
+                                playSaveAnimation = false
+                                UIApplication.shared.alert(title: "Photo Saved", body: "The upscaled image has been saved to your Photo Library.")
+                            }
+                        }) {
+                            Image(systemName: "square.and.arrow.down")
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                        }
+                        
+                        // MARK: Share Upscaled Photo
+                        let upscaled = Image(uiImage: upscaledImage)
+                        ShareLink(item: upscaled, preview: SharePreview("Upscaled Result", image: upscaled)) {
+                            Image(systemName: "square.and.arrow.up")
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                        }
                     }
                 }
             }

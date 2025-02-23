@@ -16,6 +16,7 @@ enum Tool {
 }
 
 struct EditorView: View {
+    @Environment(\.dismiss) var dismiss
     // View Models
     var imageOCR = OCR()
     
@@ -127,7 +128,7 @@ struct EditorView: View {
                                     if boxStartPos == nil {
                                         boxStartPos = drag.location
                                     }
-                                    let end = drag.location
+                                    let end = getCorrectedPoint(drag.location)
                                     let rectangle: CGRect = .init(origin: end,
                                                                   size: .init(width: boxStartPos!.x - end.x,
                                                                               height: boxStartPos!.y - end.y))
@@ -140,7 +141,7 @@ struct EditorView: View {
                                         selectionPath!.move(to: drag.startLocation)
                                         drawingLasso = true
                                     }
-                                    selectionPath!.addLine(to: drag.location)
+                                    selectionPath!.addLine(to: getCorrectedPoint(drag.location))
                                 }
                             }
                             .onEnded { drag in
@@ -156,13 +157,12 @@ struct EditorView: View {
             }
             // MARK: Bottom Bar
             HStack {
-                BottomButton(icon: "trash", action: {
+                BottomButton(icon: "trash", color: .red, action: {
                     // MARK: Remove Selection
                     guard boxStartPos == nil && !drawingLasso else { return } // do not clear if they are in the middle of drawing
                     selectionPath = nil
                     currentTool = .None
                 })
-                .foregroundStyle(.red)
                 .disabled(selectionPath == nil)
                 .opacity(selectionPath == nil ? 0.4 : 1.0)
                 BottomButton(icon: "lasso", pressed: { return currentTool == .Lasso }, action: {
@@ -246,7 +246,18 @@ struct EditorView: View {
                     fadeImage(to: SUBJECT_FADE)
                 }
             }
+            .navigationBarBackButtonHidden(true)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        HStack {
+                            Image(systemName: "chevron.left")
+                            Text("Back")
+                        }
+                    }
+                }
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button(action: {
                         // MARK: Upscale Image
@@ -257,8 +268,13 @@ struct EditorView: View {
                                 if let subject = subject { toSend = subject } // subject only
                                 // crop the sending image to the bounding box
                                 if let path = selectionPath, let cropped = toSend.cropImage(path: path, in: imageSize) { toSend = cropped }
-                                // fill the background of transparent images with white
-                                if let filled = toSend.fillTransparency(with: UIColor.white.cgColor) { toSend = filled }
+                                // fill the background of transparent images with white or the darkened background
+                                let darkenBG = UserDefaults.standard.bool(forKey: "useDarkenedBG")
+                                if darkenBG, let filled = toSend.overlayDarkened(over: image) {
+                                    toSend = filled
+                                } else if !darkenBG, let filled = toSend.fillTransparency(with: UIColor.white.cgColor) {
+                                    toSend = filled
+                                }
                                 sentImage = toSend
                                 
 //                                self.upscaledImage = await finalizeAndUpscale(image: toSend)
@@ -284,6 +300,7 @@ struct EditorView: View {
     
     struct BottomButton: View {
         var icon: String
+        var color: Color = .blue
         var pressed: () -> Bool = { return false }
         var action: () -> Void
         
@@ -293,6 +310,7 @@ struct EditorView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
             }
+            .buttonStyle(ToolbarItemStyle(color: color))
             .padding(8)
             .background {
                 if pressed() {
@@ -333,13 +351,14 @@ struct EditorView: View {
         imageFadeAmount = amt
     }
     
-    func getCroppingRect() -> CGRect? {
-        let scale = image.size.width / imageSize.width
-        guard let currentBox = selectionPath else { return nil }
-        let box = currentBox.boundingRect
-        return CGRect(
-            x: (box.minX - imagePos.x) * scale, y: (box.minY - imagePos.y) * scale,
-            width: box.width * scale, height: box.height * scale
-        )
+    func getCorrectedPoint(_ point: CGPoint) -> CGPoint {
+        var newPoint = point
+        let maxY = imagePos.y + imageSize.height
+        if newPoint.y > maxY {
+            newPoint.y = maxY
+        } else if newPoint.y < imagePos.y {
+            newPoint.y = imagePos.y
+        }
+        return newPoint
     }
 }

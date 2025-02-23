@@ -54,7 +54,7 @@ struct ContentView: View {
                 Text("Designed for Boilermake XII (2025)")
                     .font(.footnote)
             }
-            .photosPicker(isPresented: $showPhotoLibrary, selection: $chosenPhotoItem)
+            .photosPicker(isPresented: $showPhotoLibrary, selection: $chosenPhotoItem, matching: .images)
             .onChange(of: chosenPhotoItem, initial: false) {
                 if let chosenPhoto = chosenPhotoItem {
                     Task {
@@ -84,8 +84,17 @@ struct ContentView: View {
             .onRotate { newOrientation in
                 orientation = newOrientation
             }
+            .onAppear {
+                // Load default settings
+                if UserDefaults.standard.value(forKey: "useDarkenedBG") == nil {
+                    UserDefaults.standard.set(true, forKey: "useDarkenedBG")
+                }
+                if UserDefaults.standard.value(forKey: "darknessValue") == nil {
+                    UserDefaults.standard.set(0.3, forKey: "darknessValue")
+                }
+            }
         }
-        .navigationTransition(.fade(.cross))
+//        .navigationTransition(.fade(.cross))
     }
     
     var buttons: some View {
@@ -113,10 +122,8 @@ struct ContentView: View {
                 .frame(width: BUTTON_SIZE, height: (isipad || isLandscape()) ? BUTTON_SIZE : nil)
                 .padding(10)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.gray)
+            .buttonStyle(MainMenuButtonStyle(color: .gray))
             .aspectRatio((isipad || isLandscape()) ? 1.0 : nil, contentMode: .fit)
-            .shadow(color: .gray, radius: 13)
             .padding((isipad || isLandscape()) ? 10 : 20)
         }
     }
@@ -139,9 +146,8 @@ struct ContentView: View {
                 .frame(width: BUTTON_SIZE, height: BUTTON_SIZE)
                 .padding(10)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(MainMenuButtonStyle(color: .blue))
             .aspectRatio(1.0, contentMode: .fit)
-            .shadow(color: .blue, radius: 13)
             .padding(10)
         }
     }

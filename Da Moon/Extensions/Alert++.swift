@@ -10,7 +10,7 @@ import UIKit
 var currentUIAlertController: UIAlertController?
 
 fileprivate let errorString = NSLocalizedString("Error", comment: "")
-fileprivate let dismissString = NSLocalizedString("Dismiss", comment: "")
+fileprivate let dismissString = NSLocalizedString("Okay", comment: "")
 
 // create alerts without being attached to a view
 extension UIApplication {
