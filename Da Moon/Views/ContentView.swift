@@ -27,7 +27,7 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             VStack {
-                Text("Da Moon")
+                Text("Aperture")
                     .font(.custom("Courier-Bold", size: 85)) // scale the text
                     .fontWeight(.heavy)
                     .minimumScaleFactor(0.1)
