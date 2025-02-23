@@ -252,7 +252,9 @@ struct EditorView: View {
                                 if let bounding = getCroppingRect(), let cropped = toSend.cropImage(to: bounding) { toSend = cropped }
                                 sentImage = toSend
                                 
-                                self.upscaledImage = await finalizeAndUpscale(image: toSend)
+//                                self.upscaledImage = await finalizeAndUpscale(image: toSend)
+//                                self.upscaledImage = await finalizeAndUpscaleServer(image: toSend)
+                                self.upscaledImage = await combinedUpscale(image: toSend)
                                 if self.upscaledImage == nil {
                                     playingGlossAnim = false
                                     UIApplication.shared.alert(title: "Failed to upscale image.", body: "An unknown error occurred.")
